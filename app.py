@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -74,11 +74,6 @@ def todo():
     todos = TodoItem.query.filter_by(user_id=current_user.id).all()
     return render_template('todo.html', todos=todos)
 
-@app.route('/change_color/<color>')
-@login_required
-def change_color(color):
-    return render_template('todo.html', todos=TodoItem.query.filter_by(user_id=current_user.id).all(), bg_color=color)
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -101,6 +96,37 @@ def register():
         return redirect(url_for('login'))
     
     return render_template('register.html')
+
+@app.route('/add_task', methods=['POST'])
+@login_required
+def add_task():
+    task = request.json.get('task')  # Receiving JSON data via Fetch
+    if task:
+        new_task = TodoItem(task=task, user_id=current_user.id)
+        db.session.add(new_task)
+        db.session.commit()
+        return jsonify({'success': True, 'task': new_task.task, 'id': new_task.id, 'completed': new_task.completed})
+    return jsonify({'success': False}), 400
+
+@app.route('/delete_task/<int:task_id>', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    task_to_delete = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
+    if task_to_delete:
+        db.session.delete(task_to_delete)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 400
+
+@app.route('/toggle_task/<int:task_id>', methods=['POST'])
+@login_required
+def toggle_task(task_id):
+    task_to_toggle = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
+    if task_to_toggle:
+        task_to_toggle.completed = not task_to_toggle.completed
+        db.session.commit()
+        return jsonify({'success': True, 'completed': task_to_toggle.completed})
+    return jsonify({'success': False}), 400
 
 if __name__ == '__main__':
     with app.app_context():

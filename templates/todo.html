@@ -1,25 +1,78 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>To-Do List</h2>
-<form method="POST">
+<form id="todo-form">
     <input type="text" name="task" placeholder="New Task">
     <button type="submit">Add</button>
 </form>
-<ul style="background-color: {{ bg_color or '#fff' }}">
+<ul class="todolist">
     {% for todo in todos %}
     <li>
-        <form method="POST">
-            <input type="hidden" name="toggle" value="{{ todo.id }}">
-            <button type="submit">{{ '✔' if todo.completed else '✖' }}</button>
-            {{ todo.task }}
-            <button type="submit" name="delete" value="{{ todo.id }}">Delete</button>
-        </form>
+        <button onclick="toggleTask({{ todo.id }})">{{ '✔' if todo.completed else '✖' }}</button>
+        {{ todo.task }}
+        <button onclick="deleteTask({{ todo.id }})">Delete</button>
     </li>
     {% endfor %}
 </ul>
-<div>
-    <a href="{{ url_for('change_color', color='lightblue') }}">Light Blue</a>
-    <a href="{{ url_for('change_color', color='lightgreen') }}">Light Green</a>
-    <a href="{{ url_for('change_color', color='lightyellow') }}">Light Yellow</a>
-</div>
+
+<script>
+    // Function to add a new task
+    async function addTask() {
+        const taskInput = document.querySelector('input[name="task"]');
+        const task = taskInput.value;
+        if (task) {
+            const response = await fetch('/add_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ task }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const newTaskHTML = `
+                    <li>
+                        <button onclick="toggleTask(${result.id})">${result.completed ? '✔' : '✖'}</button>
+                        ${result.task}
+                        <button onclick="deleteTask(${result.id})">Delete</button>
+                    </li>`;
+                document.querySelector('ul.todolist').insertAdjacentHTML('beforeend', newTaskHTML);
+                taskInput.value = '';  // Clear input field
+            }
+        }
+    }
+
+    // Function to toggle task completion
+    async function toggleTask(taskId) {
+        const response = await fetch(`/toggle_task/${taskId}`, {
+            method: 'POST',
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            const button = document.querySelector(`button[onclick="toggleTask(${taskId})"]`);
+            button.innerText = result.completed ? '✔' : '✖';
+        }
+    }
+
+    // Function to delete a task
+    async function deleteTask(taskId) {
+        const response = await fetch(`/delete_task/${taskId}`, {
+            method: 'POST',
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            const taskElement = document.querySelector(`button[onclick="deleteTask(${taskId})"]`).parentElement;
+            taskElement.remove();  // Remove the task from the DOM
+        }
+    }
+
+    // Attach event listener to the form submission for adding tasks
+    document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault();  // Prevent the form from reloading the page
+        addTask();
+    });
+</script>
 {% endblock %}
