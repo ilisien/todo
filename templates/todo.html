@@ -7,7 +7,7 @@
 </form>
 <ul class="todolist">
     {% for todo in todos %}
-    <li>
+    <li class="{{ 'completed' if todo.completed else '' }}">
         <button onclick="toggleTask({{ todo.id }})">{{ '✔' if todo.completed else '✖' }}</button>
         {{ todo.task }}
         <button onclick="deleteTask({{ todo.id }})">Delete</button>
@@ -37,8 +37,9 @@
                         ${result.task}
                         <button onclick="deleteTask(${result.id})">Delete</button>
                     </li>`;
-                document.querySelector('ul.todolist').insertAdjacentHTML('beforeend', newTaskHTML);
-                taskInput.value = '';  // Clear input field
+                // Insert the new task at the top of the list
+                document.querySelector('ul.todolist').insertAdjacentHTML('afterbegin', newTaskHTML);
+                taskInput.value = '';  // Clear the input field
             }
         }
     }
@@ -53,6 +54,9 @@
         if (result.success) {
             const button = document.querySelector(`button[onclick="toggleTask(${taskId})"]`);
             button.innerText = result.completed ? '✔' : '✖';
+            const taskElement = button.parentElement;
+            taskElement.classList.toggle('completed', result.completed);
+            moveTask(taskElement, result.completed);  // Move the task in the list
         }
     }
 
@@ -66,6 +70,18 @@
         if (result.success) {
             const taskElement = document.querySelector(`button[onclick="deleteTask(${taskId})"]`).parentElement;
             taskElement.remove();  // Remove the task from the DOM
+        }
+    }
+
+    // Function to move a task in the list based on completion status
+    function moveTask(taskElement, isCompleted) {
+        const list = document.querySelector('ul.todolist');
+        if (isCompleted) {
+            // Move the task to the bottom of the list if completed
+            list.appendChild(taskElement);
+        } else {
+            // Move the task to the top of the list if not completed
+            list.insertBefore(taskElement, list.firstChild);
         }
     }
 

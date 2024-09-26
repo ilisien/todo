@@ -26,3 +26,8 @@ nav ul li {
     display: inline;
     margin-right: 10px;
 }
+
+.completed {
+    color: grey;
+    text-decoration: line-through;
+}
