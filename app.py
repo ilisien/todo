@@ -71,7 +71,7 @@ def todo():
             if task_to_toggle:
                 task_to_toggle.completed = not task_to_toggle.completed
                 db.session.commit()
-    todos = TodoItem.query.filter_by(user_id=current_user.id).all()
+    todos = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.completed.asc()).all()
     return render_template('todo.html', todos=todos)
 
 @app.route('/register', methods=['GET', 'POST'])
