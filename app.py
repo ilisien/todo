@@ -124,7 +124,6 @@ def add_task():
         # No need to check for empty task_name here since we're sending "Untitled"
 
         new_task = TodoItem(task=task_name,user_id=current_user.id)
-        print(task_name)
         db.session.add(new_task)
         db.session.commit()
 
