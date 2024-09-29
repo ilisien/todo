@@ -27,7 +27,29 @@ nav ul li {
     margin-right: 10px;
 }
 
-.completed {
-    color: grey;
-    text-decoration: line-through;
+.active-tasks, .completed-tasks {
+    margin-bottom: 20px; /* Add padding between sections */
+}
+
+.completed-tasks {
+    padding-top: 20px;
+    border-top: 1px solid #ccc;
+}
+
+.todolist.completed li {
+    text-decoration: line-through; /* Strike through for completed tasks */
+}
+
+.todolist li {
+    list-style-type: none;
+    margin: 5px 0;
+}
+
+button {
+    margin-right: 10px;
+}
+
+.task-wrapper {
+    display:flex;
+    flex-direction: column;
 }

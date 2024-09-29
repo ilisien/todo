@@ -1,22 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>To-Do List</h2>
-<form id="todo-form">
-    <input type="text" name="task" placeholder="New Task">
-    <button type="submit">Add</button>
-</form>
-<ul class="todolist">
-    {% for todo in todos %}
-    <li class="{{ 'completed' if todo.completed else '' }}">
-        <button onclick="toggleTask({{ todo.id }})">{{ '✔' if todo.completed else '✖' }}</button>
-        {{ todo.task }}
-        <button onclick="deleteTask({{ todo.id }})">Delete</button>
-    </li>
-    {% endfor %}
-</ul>
 
+<h3 class="todo">todo</h3>
+
+<!-- Task Form -->
+<form id="todo-form">
+    <input type="text" name="task" placeholder="new task">
+    <button type="submit">add</button>
+</form>
+
+<!-- Active Tasks -->
+<h3>active tasks</h3>
+<ul class="todolist active-tasks"></ul>
+
+<!-- Completed Tasks -->
+<h3>completed tasks</h3>
+<ul class="todolist completed-tasks"></ul>
+
+<!-- JavaScript -->
 <script>
-    // Function to add a new task
+    // Function to prevent page reload on form submission
+    document.getElementById('todo-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        addTask();
+    });
+
+    // Add task via AJAX and update the UI
     async function addTask() {
         const taskInput = document.querySelector('input[name="task"]');
         const task = taskInput.value;
@@ -31,64 +40,191 @@
 
             const result = await response.json();
             if (result.success) {
+                // Dynamically add the new task to the active tasks list
                 const newTaskHTML = `
-                    <li>
-                        <button onclick="toggleTask(${result.id})">${result.completed ? '✔' : '✖'}</button>
-                        ${result.task}
-                        <button onclick="deleteTask(${result.id})">Delete</button>
-                    </li>`;
-                // Insert the new task at the top of the list
-                document.querySelector('ul.todolist').insertAdjacentHTML('afterbegin', newTaskHTML);
-                taskInput.value = '';  // Clear the input field
+                    <li data-task-id="${result.id}">
+                        <div class="task-wrapper">
+                            <div class="main-taskbar">
+                                <button class="toggle-task" data-task-id="${result.id}">${result.completed ? '✔' : '✖'}</button>
+                                <span class="task-name">${result.task}</span>
+                                <button class="edit-task" data-task-id="${result.id}">✎</button>
+                                <button class="delete-task" data-task-id="${result.id}">Delete</button>
+                                <button class="add-subtask" data-task-id="${result.id}">➕</button>
+                            </div>
+                            <ul class="subtasks">
+                            </ul>
+                        </div>
+                    </li>;`
+                document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', newTaskHTML);
+                taskInput.value = ''; // Clear the input after adding the task
             }
         }
     }
 
-    // Function to toggle task completion
+    // Toggle task completion and move it to the appropriate section without reloading the page
     async function toggleTask(taskId) {
-        const response = await fetch(`/toggle_task/${taskId}`, {
-            method: 'POST',
-        });
-
+        const response = await fetch(`/toggle_task/${taskId}`, { method: 'POST' });
         const result = await response.json();
         if (result.success) {
-            const button = document.querySelector(`button[onclick="toggleTask(${taskId})"]`);
-            button.innerText = result.completed ? '✔' : '✖';
-            const taskElement = button.parentElement;
+            const taskElement = document.querySelector(`li[data-task-id="${taskId}"]`);
             taskElement.classList.toggle('completed', result.completed);
-            moveTask(taskElement, result.completed);  // Move the task in the list
+
+            // Move task between active and completed sections based on its completion status
+            if (result.completed) {
+                document.querySelector('.completed-tasks').appendChild(taskElement);
+            } else {
+                document.querySelector('.active-tasks').appendChild(taskElement);
+            }
+
+            const toggleButton = taskElement.querySelector('.toggle-task');
+            toggleButton.innerText = result.completed ? '✔' : '✖';
         }
     }
 
-    // Function to delete a task
+    // Delete task via AJAX and remove from UI
     async function deleteTask(taskId) {
-        const response = await fetch(`/delete_task/${taskId}`, {
-            method: 'POST',
-        });
-
+        const response = await fetch(`/delete_task/${taskId}`, { method: 'POST' });
         const result = await response.json();
         if (result.success) {
-            const taskElement = document.querySelector(`button[onclick="deleteTask(${taskId})"]`).parentElement;
-            taskElement.remove();  // Remove the task from the DOM
+            document.querySelector(`li[data-task-id="${taskId}"]`).remove();
         }
     }
 
-    // Function to move a task in the list based on completion status
-    function moveTask(taskElement, isCompleted) {
-        const list = document.querySelector('ul.todolist');
-        if (isCompleted) {
-            // Move the task to the bottom of the list if completed
-            list.appendChild(taskElement);
-        } else {
-            // Move the task to the top of the list if not completed
-            list.insertBefore(taskElement, list.firstChild);
+    // Edit task name via AJAX
+    async function editTask(taskId) {
+        const taskElement = document.querySelector(`li[data-task-id="${taskId}"] .task-name`);
+        const newName = prompt("Edit task name:", taskElement.innerText);
+        if (newName) {
+            const response = await fetch(`/edit_task/${taskId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_name: newName }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                taskElement.innerText = newName;
+            }
         }
     }
 
-    // Attach event listener to the form submission for adding tasks
-    document.querySelector('form').addEventListener('submit', function(event) {
-        event.preventDefault();  // Prevent the form from reloading the page
-        addTask();
+    // Add, toggle, and delete subtasks similar to tasks
+    async function addSubtask(taskId) {
+        const subtaskName = prompt("New subtask:");
+        if (subtaskName) {
+            const response = await fetch(`/add_subtask/${taskId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subtask: subtaskName }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
+                const newSubtaskHTML = `
+                    <li data-subtask-id="${result.subtask_id}">
+                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">✖</button>
+                        <span class="subtask-name">${result.subtask}</span>
+                        <button class="edit-subtask" data-subtask-id="${result.subtask_id}">✎</button>
+                        <button class="delete-subtask" data-subtask-id="${result.subtask_id}">Delete</button>
+                    </li>`;
+                subtaskList.insertAdjacentHTML('beforeend', newSubtaskHTML);
+            }
+        }
+    }
+
+    async function toggleSubtask(subtaskId) {
+        const response = await fetch(`/toggle_subtask/${subtaskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
+            subtaskElement.classList.toggle('completed', result.completed);
+            const toggleButton = subtaskElement.querySelector('.toggle-subtask');
+            toggleButton.innerText = result.completed ? '✔' : '✖';
+        }
+    }
+
+    async function deleteSubtask(subtaskId) {
+        const response = await fetch(`/delete_subtask/${subtaskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            document.querySelector(`li[data-subtask-id="${subtaskId}"]`).remove();
+        }
+    }
+
+    // Event delegation for task/subtask actions
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('toggle-task')) {
+            const taskId = event.target.getAttribute('data-task-id');
+            toggleTask(taskId);
+        }
+        if (event.target.classList.contains('delete-task')) {
+            const taskId = event.target.getAttribute('data-task-id');
+            deleteTask(taskId);
+        }
+        if (event.target.classList.contains('edit-task')) {
+            const taskId = event.target.getAttribute('data-task-id');
+            editTask(taskId);
+        }
+        if (event.target.classList.contains('add-subtask')) {
+            const taskId = event.target.getAttribute('data-task-id');
+            addSubtask(taskId);
+        }
+        if (event.target.classList.contains('toggle-subtask')) {
+            const subtaskId = event.target.getAttribute('data-subtask-id');
+            toggleSubtask(subtaskId);
+        }
+        if (event.target.classList.contains('delete-subtask')) {
+            const subtaskId = event.target.getAttribute('data-subtask-id');
+            deleteSubtask(subtaskId);
+        }
     });
+
+    // Fetch and display tasks when the page loads
+    async function fetchTasks() {
+        const response = await fetch('/fetch_tasks');
+        const result = await response.json();
+
+        if (result.success) {
+            // Clear current task list
+            document.querySelector('ul.active-tasks').innerHTML = '';
+            document.querySelector('ul.completed-tasks').innerHTML = '';
+
+            result.todos.forEach(task => {
+                let taskHTML = `
+                    <li data-task-id="${task.id}">
+                        <div class="task-wrapper">
+                            <div class="main-taskbar">
+                                <button class="toggle-task" data-task-id="${task.id}">${task.completed ? '✔' : '✖'}</button>
+                                <span class="task-name">${task.task}</span>
+                                <button class="edit-task" data-task-id="${task.id}">✎</button>
+                                <button class="delete-task" data-task-id="${task.id}">Delete</button>
+                                <button class="add-subtask" data-task-id="${task.id}">➕</button>
+                            </div>
+                            <ul class="subtasks">
+                                ${task.subtasks.map(subtask => `
+                                    <li data-subtask-id="${subtask.id}">
+                                        <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '✔' : '✖'}</button>
+                                        <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
+                                        <button class="edit-subtask" data-subtask-id="${subtask.id}">✎</button>
+                                        <button class="delete-subtask" data-subtask-id="${subtask.id}">Delete</button>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </li>`;
+
+                // Append to correct section (active or completed)
+                if (task.completed) {
+                    document.querySelector('ul.completed-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                } else {
+                    document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                }
+            });
+        }
+    }
+
+    // Fetch tasks when the page loads
+    window.onload = fetchTasks;
+
 </script>
+
 {% endblock %}

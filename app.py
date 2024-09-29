@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
@@ -23,6 +22,13 @@ class TodoItem(db.Model):
     task = db.Column(db.String(500), nullable=False)
     completed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    subtasks = db.relationship('Subtask', backref='todo_item', lazy=True)
+
+class Subtask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(500), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    task_id = db.Column(db.Integer, db.ForeignKey('todo_item.id'))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -50,29 +56,39 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/todo', methods=['GET', 'POST'])
+@app.route('/todo', methods=['GET'])
 @login_required
 def todo():
-    if request.method == 'POST':
-        task = request.form.get('task')
-        if task:
-            new_task = TodoItem(task=task, user_id=current_user.id)
-            db.session.add(new_task)
-            db.session.commit()
-        if 'delete' in request.form:
-            todo_id = request.form.get('delete')
-            task_to_delete = TodoItem.query.filter_by(id=todo_id, user_id=current_user.id).first()
-            if task_to_delete:
-                db.session.delete(task_to_delete)
-                db.session.commit()
-        if 'toggle' in request.form:
-            todo_id = request.form.get('toggle')
-            task_to_toggle = TodoItem.query.filter_by(id=todo_id, user_id=current_user.id).first()
-            if task_to_toggle:
-                task_to_toggle.completed = not task_to_toggle.completed
-                db.session.commit()
-    todos = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.completed.asc()).all()
+    tasks = TodoItem.query.filter_by(user_id=current_user.id).all()
+
+    # Include subtasks in the response
+    todos = []
+    for task in tasks:
+        subtasks = Subtask.query.filter_by(task_id=task.id).all()
+        todos.append({
+            'id': task.id,
+            'task': task.task,
+            'completed': task.completed,
+            'subtasks': [{'id': subtask.id, 'name': subtask.name, 'completed': subtask.completed} for subtask in subtasks]
+        })
+
     return render_template('todo.html', todos=todos)
+
+@app.route('/fetch_tasks', methods=['GET'])
+@login_required
+def fetch_tasks():
+    tasks = TodoItem.query.filter_by(user_id=current_user.id).all()
+    todos = []
+    for task in tasks:
+        subtasks = Subtask.query.filter_by(task_id=task.id).all()
+        todos.append({
+            'id': task.id,
+            'task': task.task,
+            'completed': task.completed,
+            'subtasks': [{'id': subtask.id, 'name': subtask.name, 'completed': subtask.completed} for subtask in subtasks]
+        })
+    
+    return jsonify({'success': True, 'todos': todos})
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -97,10 +113,11 @@ def register():
     
     return render_template('register.html')
 
+# Add task route (POST)
 @app.route('/add_task', methods=['POST'])
 @login_required
 def add_task():
-    task = request.json.get('task')  # Receiving JSON data via Fetch
+    task = request.json.get('task')
     if task:
         new_task = TodoItem(task=task, user_id=current_user.id)
         db.session.add(new_task)
@@ -108,6 +125,7 @@ def add_task():
         return jsonify({'success': True, 'task': new_task.task, 'id': new_task.id, 'completed': new_task.completed})
     return jsonify({'success': False}), 400
 
+# Delete task route (POST)
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
 @login_required
 def delete_task(task_id):
@@ -118,6 +136,7 @@ def delete_task(task_id):
         return jsonify({'success': True})
     return jsonify({'success': False}), 400
 
+# Toggle task completion route (POST)
 @app.route('/toggle_task/<int:task_id>', methods=['POST'])
 @login_required
 def toggle_task(task_id):
@@ -126,6 +145,64 @@ def toggle_task(task_id):
         task_to_toggle.completed = not task_to_toggle.completed
         db.session.commit()
         return jsonify({'success': True, 'completed': task_to_toggle.completed})
+    return jsonify({'success': False}), 400
+
+# Add subtask route (POST)
+@app.route('/add_subtask/<int:task_id>', methods=['POST'])
+@login_required
+def add_subtask(task_id):
+    task = TodoItem.query.get(task_id)
+    subtask_name = request.json.get('subtask')
+    if task and subtask_name:
+        new_subtask = Subtask(name=subtask_name, task_id=task_id)
+        db.session.add(new_subtask)
+        db.session.commit()
+        return jsonify({'success': True, 'subtask_id': new_subtask.id, 'subtask': new_subtask.name})
+    return jsonify({'success': False}), 400
+
+# Toggle subtask completion route (POST)
+@app.route('/toggle_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def toggle_subtask(subtask_id):
+    subtask_to_toggle = Subtask.query.get(subtask_id)
+    if subtask_to_toggle:
+        subtask_to_toggle.completed = not subtask_to_toggle.completed
+        db.session.commit()
+        return jsonify({'success': True, 'completed': subtask_to_toggle.completed})
+    return jsonify({'success': False}), 400
+
+@app.route('/delete_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def delete_subtask(subtask_id):
+    subtask_to_delete = Subtask.query.filter_by(id=subtask_id).first()
+    if subtask_to_delete:
+        db.session.delete(subtask_to_delete)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 400
+
+# Edit task name route (POST)
+@app.route('/edit_task/<int:task_id>', methods=['POST'])
+@login_required
+def edit_task(task_id):
+    task_to_edit = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
+    new_name = request.json.get('new_name')
+    if task_to_edit and new_name:
+        task_to_edit.task = new_name
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 400
+
+# Edit subtask name route (POST)
+@app.route('/edit_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def edit_subtask(subtask_id):
+    subtask_to_edit = Subtask.query.get(subtask_id)
+    new_name = request.json.get('new_name')
+    if subtask_to_edit and new_name:
+        subtask_to_edit.name = new_name
+        db.session.commit()
+        return jsonify({'success': True})
     return jsonify({'success': False}), 400
 
 if __name__ == '__main__':
