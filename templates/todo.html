@@ -92,15 +92,14 @@
     // Edit task name via AJAX
     async function editTask(taskId) {
         const taskElement = document.querySelector(`li[data-task-id="${taskId}"] .task-name`);
-        const inputField = document.createElement('input');
-        inputField.type = 'text';
-        inputField.value = taskElement.innerText;
-        taskElement.replaceWith(inputField);
-        inputField.focus();
 
-        // Handle changes to the input field (blur or Enter key)
-        const handleInputBlurOrEnter = async () => {
-            const newName = inputField.value;
+        // Make the task name element directly editable
+        taskElement.contentEditable = true;
+        taskElement.focus(); // Focus on the element for editing
+
+        // Save changes on blur or Enter
+        const handleBlurOrEnter = async () => {
+            const newName = taskElement.innerText;
             if (newName) {
                 const response = await fetch(`/edit_task/${taskId}`, {
                     method: 'POST',
@@ -109,18 +108,16 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    const newSpan = document.createElement('span');
-                    newSpan.classList.add('task-name');
-                    newSpan.innerText = newName;
-                    inputField.replaceWith(newSpan);
+                    taskElement.contentEditable = false; // Disable editing after saving
                 }
             }
         };
 
-        inputField.addEventListener('blur', handleInputBlurOrEnter); // Handle blur event
-        inputField.addEventListener('keydown', (event) => {
+        taskElement.addEventListener('blur', handleBlurOrEnter);
+        taskElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
-                handleInputBlurOrEnter(); // Handle Enter key press
+                event.preventDefault(); // Prevent adding a new line
+                handleBlurOrEnter();
             }
         });
     }
@@ -170,15 +167,12 @@
 
     async function editSubtask(subtaskId) {
         const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"] .subtask-name`);
-        const inputField = document.createElement('input');
-        inputField.type = 'text';
-        inputField.value = subtaskElement.innerText;
-        subtaskElement.replaceWith(inputField);
-        inputField.focus();
 
-        // Handle changes to the input field (blur or Enter key)
-        const handleInputBlurOrEnter = async () => {
-            const newName = inputField.value;
+        subtaskElement.contentEditable = true;
+        subtaskElement.focus();
+
+        const handleBlurOrEnter = async () => {
+            const newName = subtaskElement.innerText;
             if (newName) {
                 const response = await fetch(`/edit_subtask/${subtaskId}`, {
                     method: 'POST',
@@ -187,18 +181,16 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    const newSpan = document.createElement('span');
-                    newSpan.classList.add('subtask-name');
-                    newSpan.innerText = newName;
-                    inputField.replaceWith(newSpan);
+                    subtaskElement.contentEditable = false;
                 }
             }
         };
 
-        inputField.addEventListener('blur', handleInputBlurOrEnter); // Handle blur event
-        inputField.addEventListener('keydown', (event) => {
+        subtaskElement.addEventListener('blur', handleBlurOrEnter);
+        subtaskElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
-                handleInputBlurOrEnter(); // Handle Enter key press
+                event.preventDefault();
+                handleBlurOrEnter();
             }
         });
     }

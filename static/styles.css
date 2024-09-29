@@ -54,3 +54,10 @@ button {
     width: 100%;
     justify-content: space-between;
 }
+
+.task-name[contenteditable="true"], 
+.subtask-name[contenteditable="true"] {
+    outline: none;
+    border: none;
+    background-color: transparent;
+}
