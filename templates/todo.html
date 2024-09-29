@@ -45,16 +45,16 @@
                     <li data-task-id="${result.id}">
                         <div class="task-wrapper">
                             <div class="main-taskbar">
-                                <button class="toggle-task" data-task-id="${result.id}">${result.completed ? '✔' : '✖'}</button>
+                                <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
                                 <span class="task-name">${result.task}</span>
-                                <button class="edit-task" data-task-id="${result.id}">✎</button>
-                                <button class="delete-task" data-task-id="${result.id}">Delete</button>
+                                <button class="edit-task" data-task-id="${result.id}">🖊️</button>
+                                <button class="delete-task" data-task-id="${result.id}">🗑️</button>
                                 <button class="add-subtask" data-task-id="${result.id}">➕</button>
                             </div>
                             <ul class="subtasks">
                             </ul>
                         </div>
-                    </li>;`
+                    </li>`;
                 document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', newTaskHTML);
                 taskInput.value = ''; // Clear the input after adding the task
             }
@@ -77,11 +77,11 @@
             }
 
             const toggleButton = taskElement.querySelector('.toggle-task');
-            toggleButton.innerText = result.completed ? '✔' : '✖';
+            toggleButton.innerText = result.completed ? 'x' : '⠀';
         }
     }
 
-    // Delete task via AJAX and remove from UI
+    // 🗑️ task via AJAX and remove from UI
     async function deleteTask(taskId) {
         const response = await fetch(`/delete_task/${taskId}`, { method: 'POST' });
         const result = await response.json();
@@ -121,10 +121,10 @@
                 const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
                 const newSubtaskHTML = `
                     <li data-subtask-id="${result.subtask_id}">
-                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">✖</button>
+                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">  </button>
                         <span class="subtask-name">${result.subtask}</span>
-                        <button class="edit-subtask" data-subtask-id="${result.subtask_id}">✎</button>
-                        <button class="delete-subtask" data-subtask-id="${result.subtask_id}">Delete</button>
+                        <button class="edit-subtask" data-subtask-id="${result.subtask_id}">🖊️</button>
+                        <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
                     </li>`;
                 subtaskList.insertAdjacentHTML('beforeend', newSubtaskHTML);
             }
@@ -138,7 +138,7 @@
             const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
             subtaskElement.classList.toggle('completed', result.completed);
             const toggleButton = subtaskElement.querySelector('.toggle-subtask');
-            toggleButton.innerText = result.completed ? '✔' : '✖';
+            toggleButton.innerText = result.completed ? 'x' : '⠀';
         }
     }
 
@@ -193,19 +193,19 @@
                     <li data-task-id="${task.id}">
                         <div class="task-wrapper">
                             <div class="main-taskbar">
-                                <button class="toggle-task" data-task-id="${task.id}">${task.completed ? '✔' : '✖'}</button>
+                                <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
                                 <span class="task-name">${task.task}</span>
-                                <button class="edit-task" data-task-id="${task.id}">✎</button>
-                                <button class="delete-task" data-task-id="${task.id}">Delete</button>
+                                <button class="edit-task" data-task-id="${task.id}">🖊️</button>
+                                <button class="delete-task" data-task-id="${task.id}">🗑️</button>
                                 <button class="add-subtask" data-task-id="${task.id}">➕</button>
                             </div>
                             <ul class="subtasks">
                                 ${task.subtasks.map(subtask => `
                                     <li data-subtask-id="${subtask.id}">
-                                        <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '✔' : '✖'}</button>
+                                        <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? 'x' : '⠀'}</button>
                                         <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
-                                        <button class="edit-subtask" data-subtask-id="${subtask.id}">✎</button>
-                                        <button class="delete-subtask" data-subtask-id="${subtask.id}">Delete</button>
+                                        <button class="edit-subtask" data-subtask-id="${subtask.id}">🖊️</button>
+                                        <button class="delete-subtask" data-subtask-id="${subtask.id}">🗑️</button>
                                     </li>
                                 `).join('')}
                             </ul>
