@@ -117,13 +117,20 @@ def register():
 @app.route('/add_task', methods=['POST'])
 @login_required
 def add_task():
-    task = request.json.get('task')
-    if task:
-        new_task = TodoItem(task=task, user_id=current_user.id)
+    try:
+        data = request.get_json()
+        task_name = data.get('task', '').strip()  # Get task name and trim whitespace
+
+        # No need to check for empty task_name here since we're sending "Untitled"
+
+        new_task = TodoItem(task=task_name,user_id=current_user.id)
+        print(task_name)
         db.session.add(new_task)
         db.session.commit()
-        return jsonify({'success': True, 'task': new_task.task, 'id': new_task.id, 'completed': new_task.completed})
-    return jsonify({'success': False}), 400
+
+        return jsonify({'success': True, 'id': new_task.id, 'task': new_task.task, 'completed': new_task.completed})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 # Delete task route (POST)
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
@@ -151,14 +158,25 @@ def toggle_task(task_id):
 @app.route('/add_subtask/<int:task_id>', methods=['POST'])
 @login_required
 def add_subtask(task_id):
-    task = TodoItem.query.get(task_id)
-    subtask_name = request.json.get('subtask')
-    if task and subtask_name:
-        new_subtask = Subtask(name=subtask_name, task_id=task_id)
+    try:
+        # 1. Get the task to which the subtask will be added
+        task = TodoItem.query.get_or_404(task_id)
+
+        # 2. Get the subtask name from the request data
+        data = request.get_json()
+        subtask_name = data.get('subtask', '').strip()  # Get subtask name and trim whitespace
+        
+        # 3. Create a new Subtask object
+        new_subtask = Subtask(name=subtask_name, task_id=task_id) 
+        # 4. Add the new subtask to the database
         db.session.add(new_subtask)
         db.session.commit()
+
+        # 5. Return a success response with the new subtask's ID and name
         return jsonify({'success': True, 'subtask_id': new_subtask.id, 'subtask': new_subtask.name})
-    return jsonify({'success': False}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 # Toggle subtask completion route (POST)
 @app.route('/toggle_subtask/<int:subtask_id>', methods=['POST'])
@@ -185,25 +203,44 @@ def delete_subtask(subtask_id):
 @app.route('/edit_task/<int:task_id>', methods=['POST'])
 @login_required
 def edit_task(task_id):
-    task_to_edit = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
-    new_name = request.json.get('new_name')
-    if task_to_edit and new_name:
-        task_to_edit.task = new_name
+    try:
+        task = TodoItem.query.get_or_404(task_id)
+        data = request.get_json()
+        new_name = data.get('new_name', '').strip()  # Get new name and trim whitespace
+
+        if not new_name:  # If new name is empty after trimming
+            new_name = "untitled"  # Set it to "Untitled"
+
+        task.task = new_name
         db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False}), 400
+        return jsonify({'success': True, 'new_name': new_name})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 # Edit subtask name route (POST)
 @app.route('/edit_subtask/<int:subtask_id>', methods=['POST'])
 @login_required
 def edit_subtask(subtask_id):
-    subtask_to_edit = Subtask.query.get(subtask_id)
-    new_name = request.json.get('new_name')
-    if subtask_to_edit and new_name:
-        subtask_to_edit.name = new_name
+    try:
+        # 1. Get the subtask to be edited
+        subtask = Subtask.query.get_or_404(subtask_id)
+
+        # 2. Get the new name from the request data
+        data = request.get_json()
+        new_name = data.get('new_name', '').strip()  # Get new name and trim whitespace
+
+        # 3. Update the subtask's name
+        subtask.name = new_name 
+
+        # 4. Commit the changes to the database
         db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False}), 400
+
+        # 5. Return a success response with the new name
+        return jsonify({'success': True, 'new_name': new_name})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 
 if __name__ == '__main__':
     with app.app_context():

@@ -5,8 +5,7 @@
 
 <!-- Task Form -->
 <form id="todo-form">
-    <input type="text" name="task" placeholder="new task">
-    <button type="submit">add</button>
+    <button type="submit">new task</button>
 </form>
 
 <!-- Active Tasks -->
@@ -27,38 +26,37 @@
 
     // Add task via AJAX and update the UI
     async function addTask() {
-        const taskInput = document.querySelector('input[name="task"]');
-        const task = taskInput.value;
-        if (task) {
-            const response = await fetch('/add_task', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ task }),
-            });
+        // Don't send an empty task name initially
+        const response = await fetch('/add_task', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ task: "untitled" }), // Add a default "untitled" task
+        });
 
-            const result = await response.json();
-            if (result.success) {
-                // Dynamically add the new task to the active tasks list
-                const newTaskHTML = `
-                    <li data-task-id="${result.id}">
-                        <div class="task-wrapper">
-                            <div class="main-taskbar">
-                                <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
-                                <span class="task-name">${result.task}</span>
-                                <button class="delete-task" data-task-id="${result.id}">🗑️</button>
-                                <button class="add-subtask" data-task-id="${result.id}">➕</button>
-                            </div>
-                            <ul class="subtasks">
-                            </ul>
+        const result = await response.json();
+        if (result.success) {
+            const newTaskHTML = `
+                <li data-task-id="${result.id}">
+                    <div class="task-wrapper">
+                        <div class="main-taskbar">
+                            <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
+                            <span class="task-name"></span> 
+                            <button class="delete-task" data-task-id="${result.id}">🗑️</button>
+                            <button class="add-subtask" data-task-id="${result.id}">➕</button>
                         </div>
-                    </li>`;
-                document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', newTaskHTML);
-                taskInput.value = ''; // Clear the input after adding the task
-            }
+                        <ul class="subtasks">
+                        </ul>
+                    </div>
+                </li>`;
+            document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', newTaskHTML);
+
+            // Automatically start editing the new task name
+            editTask(result.id); 
         }
     }
+
 
     // Toggle task completion and move it to the appropriate section without reloading the page
     async function toggleTask(taskId) {
@@ -93,25 +91,27 @@
     async function editTask(taskId) {
         const taskElement = document.querySelector(`li[data-task-id="${taskId}"] .task-name`);
 
-        // Make the task name element directly editable
         taskElement.contentEditable = true;
-        taskElement.focus(); // Focus on the element for editing
+        taskElement.focus();
 
-        // Save changes on blur or Enter
         const handleBlurOrEnter = async () => {
-            const newName = taskElement.innerText;
+            const newName = taskElement.innerText.trim(); // Trim whitespace
             if (newName) {
+                // Save the new name
                 const response = await fetch(`/edit_task/${taskId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ new_name: newName }),
                 });
-                const result = await response.json();
-                if (result.success) {
-                    taskElement.contentEditable = false; // Disable editing after saving
-                }
+                // ... (handle response as before)
+            } else {
+                // If the name is empty, set it to "untitled" and gray it out
+                taskElement.innerText = "untitled";
+                taskElement.style.color = "gray";
             }
+            taskElement.contentEditable = false; 
         };
+
 
         taskElement.addEventListener('blur', handleBlurOrEnter);
         taskElement.addEventListener('keydown', (event) => {
@@ -125,24 +125,30 @@
 
     // Add, toggle, and delete subtasks similar to tasks
     async function addSubtask(taskId) {
-        const subtaskName = prompt("New subtask:");
-        if (subtaskName) {
-            const response = await fetch(`/add_subtask/${taskId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subtask: subtaskName }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
-                const newSubtaskHTML = `
-                    <li data-subtask-id="${result.subtask_id}">
-                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
-                        <span class="subtask-name">${result.subtask}</span>
-                        <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
-                    </li>`;
-                subtaskList.insertAdjacentHTML('beforeend', newSubtaskHTML);
-            }
+        // 1. Send request to add subtask (with default "untitled" name)
+        const response = await fetch(`/add_subtask/${taskId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subtask: "untitled" }), // Add a default "untitled" subtask
+        });
+
+        // 2. Handle response from server
+        const result = await response.json();
+        if (result.success) {
+            // 3. Create new subtask HTML element
+            const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
+            const newSubtaskHTML = `
+                <li data-subtask-id="${result.subtask_id}">
+                    <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
+                    <span class="subtask-name"></span> 
+                    <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
+                </li>`;
+
+            // 4. Add the new subtask to the UI
+            subtaskList.insertAdjacentHTML('beforeend', newSubtaskHTML);
+
+            // 5. Automatically start editing the new subtask name
+            editSubtask(result.subtask_id);
         }
     }
 
@@ -166,14 +172,19 @@
     }
 
     async function editSubtask(subtaskId) {
+        // 1. Get the subtask name element
         const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"] .subtask-name`);
 
+        // 2. Make it editable
         subtaskElement.contentEditable = true;
         subtaskElement.focus();
 
+        // 3. Handle blur or Enter key events
         const handleBlurOrEnter = async () => {
-            const newName = subtaskElement.innerText;
+            const newName = subtaskElement.innerText.trim(); // Trim whitespace
+
             if (newName) {
+                // 4a. Save the new name if it's not empty
                 const response = await fetch(`/edit_subtask/${subtaskId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -181,8 +192,12 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    subtaskElement.contentEditable = false;
+                    subtaskElement.contentEditable = false; 
                 }
+            } else {
+                // 4b. Set to "untitled" and gray it out if empty
+                subtaskElement.innerText = "untitled";
+                subtaskElement.contentEditable = false; 
             }
         };
 
