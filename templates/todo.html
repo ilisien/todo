@@ -43,8 +43,10 @@
                         <div class="main-taskbar">
                             <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
                             <span class="task-name"></span> 
-                            <button class="delete-task" data-task-id="${result.id}">🗑️</button>
-                            <button class="add-subtask" data-task-id="${result.id}">➕</button>
+                            <div class="options">
+                                <button class="add-subtask" data-task-id="${result.id}">➕</button>
+                                <button class="delete-task" data-task-id="${result.id}">🗑️</button>
+                            </div>
                         </div>
                         <ul class="subtasks">
                         </ul>
@@ -107,7 +109,6 @@
             } else {
                 // If the name is empty, set it to "untitled" and gray it out
                 taskElement.innerText = "untitled";
-                taskElement.style.color = "gray";
             }
             taskElement.contentEditable = false; 
         };
@@ -259,8 +260,10 @@
                             <div class="main-taskbar">
                                 <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
                                 <span class="task-name">${task.task}</span>
-                                <button class="delete-task" data-task-id="${task.id}">🗑️</button>
-                                <button class="add-subtask" data-task-id="${task.id}">➕</button>
+                                <div class="options">
+                                    <button class="add-subtask" data-task-id="${task.id}">➕</button>
+                                    <button class="delete-task" data-task-id="${task.id}">🗑️</button>
+                                </div>
                             </div>
                             <ul class="subtasks">
                                 ${task.subtasks.map(subtask => `
