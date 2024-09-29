@@ -71,7 +71,7 @@
 
             // Move task between active and completed sections based on its completion status
             if (result.completed) {
-                document.querySelector('.completed-tasks').appendChild(taskElement);
+                document.querySelector('.completed-tasks').insertAdjacentElement('afterbegin', taskElement);
             } else {
                 document.querySelector('.active-tasks').appendChild(taskElement);
             }
@@ -121,7 +121,7 @@
                 const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
                 const newSubtaskHTML = `
                     <li data-subtask-id="${result.subtask_id}">
-                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">  </button>
+                        <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
                         <span class="subtask-name">${result.subtask}</span>
                         <button class="edit-subtask" data-subtask-id="${result.subtask_id}">🖊️</button>
                         <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
@@ -150,6 +150,22 @@
         }
     }
 
+    async function editSubtask(subtaskId) {
+        const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"] .subtask-name`);
+        const newName = prompt("Edit subtask name:", subtaskElement.innerText);
+        if (newName) {
+            const response = await fetch(`/edit_subtask/${subtaskId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_name: newName }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                subtaskElement.innerText = newName;
+            }
+        }
+    }
+
     // Event delegation for task/subtask actions
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('toggle-task')) {
@@ -171,6 +187,10 @@
         if (event.target.classList.contains('toggle-subtask')) {
             const subtaskId = event.target.getAttribute('data-subtask-id');
             toggleSubtask(subtaskId);
+        }
+        if (event.target.classList.contains('edit-subtask')) {
+            const subtaskId = event.target.getAttribute('data-subtask-id');
+            editSubtask(subtaskId);
         }
         if (event.target.classList.contains('delete-subtask')) {
             const subtaskId = event.target.getAttribute('data-subtask-id');

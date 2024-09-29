@@ -28,16 +28,8 @@ nav ul li {
 }
 
 .active-tasks, .completed-tasks {
-    margin-bottom: 20px; /* Add padding between sections */
-}
-
-.completed-tasks {
-    padding-top: 20px;
     border-top: 1px solid #ccc;
-}
-
-.todolist.completed li {
-    text-decoration: line-through; /* Strike through for completed tasks */
+    margin-bottom: 20px; /* Add padding between sections */
 }
 
 .todolist li {
@@ -52,4 +44,13 @@ button {
 .task-wrapper {
     display:flex;
     flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+.main-taskbar {
+    display:flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
 }
