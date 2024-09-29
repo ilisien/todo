@@ -47,7 +47,6 @@
                             <div class="main-taskbar">
                                 <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
                                 <span class="task-name">${result.task}</span>
-                                <button class="edit-task" data-task-id="${result.id}">🖊️</button>
                                 <button class="delete-task" data-task-id="${result.id}">🗑️</button>
                                 <button class="add-subtask" data-task-id="${result.id}">➕</button>
                             </div>
@@ -93,19 +92,39 @@
     // Edit task name via AJAX
     async function editTask(taskId) {
         const taskElement = document.querySelector(`li[data-task-id="${taskId}"] .task-name`);
-        const newName = prompt("Edit task name:", taskElement.innerText);
-        if (newName) {
-            const response = await fetch(`/edit_task/${taskId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ new_name: newName }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                taskElement.innerText = newName;
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = taskElement.innerText;
+        taskElement.replaceWith(inputField);
+        inputField.focus();
+
+        // Handle changes to the input field (blur or Enter key)
+        const handleInputBlurOrEnter = async () => {
+            const newName = inputField.value;
+            if (newName) {
+                const response = await fetch(`/edit_task/${taskId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_name: newName }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const newSpan = document.createElement('span');
+                    newSpan.classList.add('task-name');
+                    newSpan.innerText = newName;
+                    inputField.replaceWith(newSpan);
+                }
             }
-        }
+        };
+
+        inputField.addEventListener('blur', handleInputBlurOrEnter); // Handle blur event
+        inputField.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleInputBlurOrEnter(); // Handle Enter key press
+            }
+        });
     }
+
 
     // Add, toggle, and delete subtasks similar to tasks
     async function addSubtask(taskId) {
@@ -123,7 +142,6 @@
                     <li data-subtask-id="${result.subtask_id}">
                         <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
                         <span class="subtask-name">${result.subtask}</span>
-                        <button class="edit-subtask" data-subtask-id="${result.subtask_id}">🖊️</button>
                         <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
                     </li>`;
                 subtaskList.insertAdjacentHTML('beforeend', newSubtaskHTML);
@@ -152,18 +170,37 @@
 
     async function editSubtask(subtaskId) {
         const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"] .subtask-name`);
-        const newName = prompt("Edit subtask name:", subtaskElement.innerText);
-        if (newName) {
-            const response = await fetch(`/edit_subtask/${subtaskId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ new_name: newName }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                subtaskElement.innerText = newName;
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = subtaskElement.innerText;
+        subtaskElement.replaceWith(inputField);
+        inputField.focus();
+
+        // Handle changes to the input field (blur or Enter key)
+        const handleInputBlurOrEnter = async () => {
+            const newName = inputField.value;
+            if (newName) {
+                const response = await fetch(`/edit_subtask/${subtaskId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_name: newName }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const newSpan = document.createElement('span');
+                    newSpan.classList.add('subtask-name');
+                    newSpan.innerText = newName;
+                    inputField.replaceWith(newSpan);
+                }
             }
-        }
+        };
+
+        inputField.addEventListener('blur', handleInputBlurOrEnter); // Handle blur event
+        inputField.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleInputBlurOrEnter(); // Handle Enter key press
+            }
+        });
     }
 
     // Event delegation for task/subtask actions
@@ -176,8 +213,8 @@
             const taskId = event.target.getAttribute('data-task-id');
             deleteTask(taskId);
         }
-        if (event.target.classList.contains('edit-task')) {
-            const taskId = event.target.getAttribute('data-task-id');
+        if (event.target.classList.contains('task-name')) { // Handle clicks on task names
+            const taskId = event.target.closest('li').getAttribute('data-task-id');
             editTask(taskId);
         }
         if (event.target.classList.contains('add-subtask')) {
@@ -188,8 +225,8 @@
             const subtaskId = event.target.getAttribute('data-subtask-id');
             toggleSubtask(subtaskId);
         }
-        if (event.target.classList.contains('edit-subtask')) {
-            const subtaskId = event.target.getAttribute('data-subtask-id');
+        if (event.target.classList.contains('subtask-name')) { // Handle clicks on subtask names
+            const subtaskId = event.target.closest('li').getAttribute('data-subtask-id');
             editSubtask(subtaskId);
         }
         if (event.target.classList.contains('delete-subtask')) {
@@ -215,7 +252,6 @@
                             <div class="main-taskbar">
                                 <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
                                 <span class="task-name">${task.task}</span>
-                                <button class="edit-task" data-task-id="${task.id}">🖊️</button>
                                 <button class="delete-task" data-task-id="${task.id}">🗑️</button>
                                 <button class="add-subtask" data-task-id="${task.id}">➕</button>
                             </div>
@@ -224,7 +260,6 @@
                                     <li data-subtask-id="${subtask.id}">
                                         <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? 'x' : '⠀'}</button>
                                         <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
-                                        <button class="edit-subtask" data-subtask-id="${subtask.id}">🖊️</button>
                                         <button class="delete-subtask" data-subtask-id="${subtask.id}">🗑️</button>
                                     </li>
                                 `).join('')}
