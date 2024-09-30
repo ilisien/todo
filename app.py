@@ -34,6 +34,10 @@ class Subtask(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route('/')
+def home():
+    return redirect(url_for('todo'))
+
 # Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -244,4 +248,4 @@ def edit_subtask(subtask_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Ensure this runs within an application context
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0')
