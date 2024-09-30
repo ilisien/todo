@@ -34,6 +34,11 @@ class Subtask(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route('/')
+def home():
+    # Redirect to the /todo route
+    return redirect(url_for('todo'))
+
 # Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
