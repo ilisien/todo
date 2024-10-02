@@ -36,7 +36,6 @@ def load_user(user_id):
 
 @app.route('/')
 def home():
-    # Redirect to the /todo route
     return redirect(url_for('todo'))
 
 # Routes
@@ -249,4 +248,4 @@ def edit_subtask(subtask_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Ensure this runs within an application context
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0')

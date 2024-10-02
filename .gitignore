@@ -1,2 +1,6 @@
 /env/
 *.sqlite3
+__pycache__/
+todo.sock
+instance/
+wsgi.py
