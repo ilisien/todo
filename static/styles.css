@@ -79,6 +79,18 @@ button {
     justify-content: space-between;
 }
 
+span.task-name, span.subtask-name {
+    flex-grow:1;
+    word-wrap:break-word;
+    min-width: 1%;
+    margin-right: 10px;
+}
+
+.options {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
 /* Subtask Styles */
 .subtasks li {
     margin-left: 15px;
