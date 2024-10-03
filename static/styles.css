@@ -96,3 +96,22 @@ span.task-name, span.subtask-name {
     margin-left: 15px;
     margin-right: 15px;
 }
+
+/* Hide the drag handle by default */
+.drag-handle {
+    display: none;
+    margin-left: 10px;
+    cursor: grab;
+    color: #aaa;
+    font-size: 20px;
+}
+
+/* Show the drag handle when hovering over the checkbox and drag container */
+.checkbox-and-drag:hover .drag-handle {
+    display: inline-block;
+}
+
+/* Optional: Additional styling for when the drag handle is hovered */
+.drag-handle:hover {
+    color: #333;
+}

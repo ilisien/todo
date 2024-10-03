@@ -1,12 +1,16 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
+
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -23,6 +27,7 @@ class TodoItem(db.Model):
     completed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     subtasks = db.relationship('Subtask', backref='todo_item', lazy=True)
+    position = db.Column(db.Integer,nullable=True)
 
 class Subtask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -63,7 +68,7 @@ def logout():
 @app.route('/todo', methods=['GET'])
 @login_required
 def todo():
-    tasks = TodoItem.query.filter_by(user_id=current_user.id).all()
+    tasks = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.position).all()
 
     # Include subtasks in the response
     todos = []
@@ -81,7 +86,7 @@ def todo():
 @app.route('/fetch_tasks', methods=['GET'])
 @login_required
 def fetch_tasks():
-    tasks = TodoItem.query.filter_by(user_id=current_user.id).all()
+    tasks = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.position).all()
     todos = []
     for task in tasks:
         subtasks = Subtask.query.filter_by(task_id=task.id).all()
@@ -123,11 +128,13 @@ def register():
 def add_task():
     try:
         data = request.get_json()
-        task_name = data.get('task', '').strip()  # Get task name and trim whitespace
 
         # No need to check for empty task_name here since we're sending "Untitled"
 
-        new_task = TodoItem(task=task_name,user_id=current_user.id)
+        new_task = TodoItem(task="",user_id=current_user.id)
+        max_position = db.session.query(db.func.max(TodoItem.position)).filter_by(user_id=current_user.id).scalar()
+        new_task.position = (max_position or 0) + 1
+
         db.session.add(new_task)
         db.session.commit()
 
@@ -153,9 +160,27 @@ def toggle_task(task_id):
     task_to_toggle = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
     if task_to_toggle:
         task_to_toggle.completed = not task_to_toggle.completed
+
+        task_to_toggle.position = 0
+
         db.session.commit()
         return jsonify({'success': True, 'completed': task_to_toggle.completed})
     return jsonify({'success': False}), 400
+
+@app.route('/update_task_order', methods=['POST'])
+@login_required  # Assuming user must be logged in
+def update_task_order():
+    data = request.get_json()
+    task_order = data.get('order')  # This will be a list of task IDs in the new order
+    
+    # Update positions based on new order
+    for index, task_id in enumerate(task_order):
+        task = TodoItem.query.filter_by(id=task_id, user_id=current_user.id).first()
+        if task:
+            task.position = index
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 # Add subtask route (POST)
 @app.route('/add_subtask/<int:task_id>', methods=['POST'])

@@ -18,11 +18,14 @@ async function addTask() {
     const result = await response.json();
     if (result.success) {
         const newTaskHTML = `
-            <li data-task-id="${result.id}">
+            <li data-task-id="${result.id}" class="task-item" draggable="true">
                 <div class="task-wrapper">
                     <div class="main-taskbar">
-                        <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
-                        <span class="task-name"></span> 
+                        <div class="checkbox-and-drag">
+                            <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
+                            <div class="drag-handle">≡</div> <!-- Draggable handle (initially hidden) -->
+                        </div>
+                        <span class="task-name">${result.task}</span>
                         <div class="options">
                             <button class="add-subtask" data-task-id="${result.id}">➕</button>
                             <button class="delete-task" data-task-id="${result.id}">🗑️</button>
@@ -32,7 +35,7 @@ async function addTask() {
                     </ul>
                 </div>
             </li>`;
-        document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', newTaskHTML);
+        document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', newTaskHTML);
 
         // Automatically start editing the new task name
         editTask(result.id); 
@@ -85,9 +88,8 @@ async function editTask(taskId) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ new_name: newName }),
             });
-            // ... (handle response as before)
         } else {
-            // If the name is empty, set it to "untitled" and gray it out
+            // If the name is empty, set it to "untitled"
             taskElement.innerText = "untitled";
         }
         taskElement.contentEditable = false; 
@@ -235,10 +237,13 @@ async function fetchTasks() {
 
         result.todos.forEach(task => {
             let taskHTML = `
-                <li data-task-id="${task.id}">
+                <li data-task-id="${task.id}" class="task-item" draggable="true">
                     <div class="task-wrapper">
                         <div class="main-taskbar">
-                            <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
+                            <div class="checkbox-and-drag">
+                                <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
+                                <div class="drag-handle">≡</div> <!-- Draggable handle (initially hidden) -->
+                            </div>
                             <span class="task-name">${task.task}</span>
                             <div class="options">
                                 <button class="add-subtask" data-task-id="${task.id}">➕</button>
@@ -259,13 +264,84 @@ async function fetchTasks() {
 
             // Append to correct section (active or completed)
             if (task.completed) {
-                document.querySelector('ul.completed-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                document.querySelector('ul.completed-tasks').insertAdjacentHTML('afterbegin', taskHTML);
             } else {
-                document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', taskHTML);
             }
         });
     }
 }
+
+function updateTaskOrder() {
+    const taskItems = document.querySelectorAll('.task-item');
+    const taskOrder = Array.from(taskItems).map(item => item.getAttribute('data-task-id'));
+
+    fetch('/update_task_order', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ order: taskOrder }),
+    });
+}
+
+// Start dragging a task
+function dragStart(e) {
+    draggedTask = e.target;
+    e.dataTransfer.effectAllowed = 'move'; // Allow move effect
+    e.dataTransfer.setData('text/html', e.target.outerHTML); // For dragging visuals
+    e.target.classList.add('dragging'); // Add dragging class for visual feedback
+}
+
+// Allow dragging over another task (necessary to allow dropping)
+function dragOver(e) {
+    e.preventDefault(); // Must call this to allow dropping
+    e.dataTransfer.dropEffect = 'move'; // Show move icon (prevent red circle)
+    
+    const taskItem = e.target.closest('.task-item');
+    if (taskItem && taskItem !== draggedTask) {
+        taskItem.classList.add('over'); // Add visual indication of where the item will drop
+    }
+}
+
+// Remove highlighting when leaving a task
+function dragLeave(e) {
+    e.target.closest('.task-item').classList.remove('over');
+}
+
+// Drop the task into a new position
+function drop(e) {
+    e.preventDefault(); // Prevent default to allow dropping
+    
+    const taskItem = e.target.closest('.task-item');
+    if (taskItem && taskItem !== draggedTask) {
+        taskItem.classList.remove('over');
+        // Insert dragged task before the target task
+        taskItem.before(draggedTask);
+        updateTaskOrder(); // Optionally update the task order in the backend
+    }
+}
+
+// End drag (cleanup)
+function dragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+// Attach drag-and-drop event listeners to all task items
+function addDragAndDropListeners() {
+    const taskItems = document.querySelectorAll('.task-item');
+    taskItems.forEach(item => {
+        item.addEventListener('dragstart', dragStart);
+        item.addEventListener('dragover', dragOver);
+        item.addEventListener('dragleave', dragLeave);
+        item.addEventListener('drop', drop);
+        item.addEventListener('dragend', dragEnd);
+    });
+}
+
+// Call this function whenever a new task is added
+addDragAndDropListeners();
+
 
 // Fetch tasks when the page loads
 window.onload = fetchTasks;
