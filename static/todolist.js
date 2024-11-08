@@ -118,7 +118,7 @@ async function addSubtask(taskId) {
         // 3. Create new subtask HTML element
         const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
         const newSubtaskHTML = `
-            <li data-subtask-id="${result.subtask_id}">
+            <li class="subtask-item" data-subtask-id="${result.subtask_id}">
                 <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
                 <span class="subtask-name"></span> 
                 <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
@@ -246,7 +246,7 @@ async function fetchTasks() {
                         </div>
                         <ul class="subtasks">
                             ${task.subtasks.map(subtask => `
-                                <li data-subtask-id="${subtask.id}">
+                                <li class="subtask-item" data-subtask-id="${subtask.id}">
                                     <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? 'x' : '⠀'}</button>
                                     <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
                                     <button class="delete-subtask" data-subtask-id="${subtask.id}">🗑️</button>
