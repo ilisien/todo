@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const dragLists = document.querySelectorAll('.draglist');
-    const scrollThreshold = 50; // Pixels from edge to trigger scrolling
-    const scrollSpeed = 5;     // Pixels to scroll per frame
+    const scrollThreshold = 50;
+    const scrollSpeed = 5;
 
     dragLists.forEach(dragList => {
         let draggedItem = null;
@@ -40,28 +40,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 draggedItem = e.target;
                 draggedItem.classList.add('drag');
 
+                // Create a placeholder and style it
                 placeholder = document.createElement('li');
                 placeholder.classList.add('placeholder');
-                dragList.insertBefore(placeholder, draggedItem.nextSibling);
+                placeholder.style.width = `${draggedItem.offsetWidth}px`;
+                placeholder.style.position = 'absolute';
+                placeholder.style.visibility = 'hidden'; // Hide until positioned
+
+                dragList.appendChild(placeholder);
             }
         });
 
         dragList.addEventListener('mousemove', (e) => {
             if (isDragging && draggedItem) {
                 e.preventDefault();
-
+        
                 const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
-
-                if (elementBelow && elementBelow.parentNode === dragList) {
-                    if (getOffset(elementBelow).top + elementBelow.offsetHeight / 2 > getOffset(placeholder).top + placeholder.offsetHeight / 2 && elementBelow !== placeholder && elementBelow != draggedItem) {
+        
+                if (elementBelow && elementBelow.parentNode === dragList && elementBelow !== placeholder && elementBelow !== draggedItem) {
+                    const rect = elementBelow.getBoundingClientRect();
+                    const insertAfter = e.clientY > rect.top + rect.height / 2;
+        
+                    // Calculate midpoint for snapping
+                    const offset = getOffset(elementBelow);
+                    const midpoint = insertAfter ? offset.top + elementBelow.offsetHeight + 5 : offset.top - 5;
+        
+                    // Update placeholder position to midpoint or offset
+                    placeholder.style.left = `${offset.left}px`;
+                    placeholder.style.top = `${midpoint}px`;
+                    placeholder.style.visibility = 'visible';
+        
+                    // Move placeholder in DOM without shifting other elements
+                    if (insertAfter) {
                         dragList.insertBefore(placeholder, elementBelow.nextSibling);
-                    } else if (elementBelow !== placeholder && elementBelow != draggedItem) {
+                    } else {
                         dragList.insertBefore(placeholder, elementBelow);
                     }
                 }
                 autoScroll(e);
             }
         });
+        
 
         dragList.addEventListener('mouseup', (e) => {
             if (isDragging && draggedItem) {
@@ -72,12 +91,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 dragList.insertBefore(draggedItem, placeholder);
                 placeholder.remove();
 
-                // Save the new order of items
                 const order = Array.from(dragList.children)
                     .filter(item => item.classList.contains('draggable'))
                     .map(item => item.dataset.taskId);
 
-                // Send the new order to the server
                 fetch('/update_task_order', {
                     method: 'POST',
                     headers: {
@@ -99,12 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 draggedItem = null;
                 placeholder = null;
-            }
-        });
-
-        dragList.addEventListener('mouseleave', (e) => {  // Added mouseleave
-            if (isDragging && draggedItem) {
-                // Stop any potential auto-scrolling if mouse leaves while dragging.
             }
         });
     });
