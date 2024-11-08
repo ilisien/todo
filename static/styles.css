@@ -18,7 +18,7 @@ ul {
     padding: 0;
 }
 
-li {
+.task-item,.subtask-item {
     display: flex;
     justify-content: space-between;
 
@@ -47,7 +47,7 @@ nav ul li {
     border-top: 1px solid #ccc;
 }
 
-.todolist li {
+.todolist li.draggable {
     margin: 10px 0;
 }
 
@@ -97,21 +97,20 @@ span.task-name, span.subtask-name {
     margin-right: 15px;
 }
 
-/* Hide the drag handle by default */
-.drag-handle {
-    display: none;
-    margin-left: 10px;
+.draggable {
     cursor: grab;
-    color: #aaa;
-    font-size: 20px;
 }
 
-/* Show the drag handle when hovering over the checkbox and drag container */
-.checkbox-and-drag:hover .drag-handle {
-    display: inline-block;
+li.drag {
+    cursor: grabbing;
+    opacity: 0.5; /* Slightly transparent while dragging */
 }
 
-/* Optional: Additional styling for when the drag handle is hovered */
-.drag-handle:hover {
-    color: #333;
+.placeholder {
+    margin-bottom: 10px;
+    height: 4px;
+    margin-top: -14px;
+    transform: translateY(7px);
+    background-color: rgb(0, 0, 0);
+    border-radius: 2px;
 }

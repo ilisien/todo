@@ -10,13 +10,14 @@
 
 <!-- Active Tasks -->
 <h3>active tasks</h3>
-<ul class="todolist active-tasks"></ul>
+<ul class="todolist active-tasks draglist"></ul>
 
 <!-- Completed Tasks -->
 <h3>completed tasks</h3>
-<ul class="todolist completed-tasks"></ul>
+<ul class="todolist completed-tasks draglist"></ul>
 
 <!-- JavaScript -->
 <script src="{{ url_for('static', filename='todolist.js') }}"></script>
+<script src="{{ url_for('static', filename='dragging.js') }}"></script>
 
 {% endblock %}
