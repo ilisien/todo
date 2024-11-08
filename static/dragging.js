@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Calculate midpoint for snapping
                     const offset = getOffset(elementBelow);
                     const midpoint = insertAfter ? offset.top + elementBelow.offsetHeight + 5 : offset.top - 5;
-        
+
                     // Update placeholder position to midpoint or offset
                     placeholder.style.left = `${offset.left}px`;
                     placeholder.style.top = `${midpoint}px`;
