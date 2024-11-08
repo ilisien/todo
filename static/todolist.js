@@ -258,9 +258,9 @@ async function fetchTasks() {
 
             // Append to correct section (active or completed)
             if (task.completed) {
-                document.querySelector('ul.completed-tasks').insertAdjacentHTML('afterbegin', taskHTML);
+                document.querySelector('ul.completed-tasks').insertAdjacentHTML('beforeend', taskHTML);
             } else {
-                document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', taskHTML);
+                document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', taskHTML);
             }
         });
     }

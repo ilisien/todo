@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let isDragging = false;
         let placeholder = null;
 
-
         function getOffset(el) {
             const rect = el.getBoundingClientRect();
             return {
@@ -51,13 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isDragging && draggedItem) {
                 e.preventDefault();
 
-                let newPosition = Array.from(dragList.children).indexOf(placeholder);
                 const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
 
                 if (elementBelow && elementBelow.parentNode === dragList) {
                     if (getOffset(elementBelow).top + elementBelow.offsetHeight / 2 > getOffset(placeholder).top + placeholder.offsetHeight / 2 && elementBelow !== placeholder && elementBelow != draggedItem) {
                         dragList.insertBefore(placeholder, elementBelow.nextSibling);
-                    } else if (elementBelow !== placeholder && elementBelow != draggedItem){
+                    } else if (elementBelow !== placeholder && elementBelow != draggedItem) {
                         dragList.insertBefore(placeholder, elementBelow);
                     }
                 }
@@ -74,13 +72,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 dragList.insertBefore(draggedItem, placeholder);
                 placeholder.remove();
 
+                // Save the new order of items
+                const order = Array.from(dragList.children)
+                    .filter(item => item.classList.contains('draggable'))
+                    .map(item => item.dataset.taskId);
+
+                // Send the new order to the server
+                fetch('/update_task_order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ order: order })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Order updated successfully');
+                    } else {
+                        console.error('Error updating order:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
                 draggedItem = null;
                 placeholder = null;
             }
         });
 
         dragList.addEventListener('mouseleave', (e) => {  // Added mouseleave
-           if (isDragging && draggedItem) {
+            if (isDragging && draggedItem) {
                 // Stop any potential auto-scrolling if mouse leaves while dragging.
             }
         });
