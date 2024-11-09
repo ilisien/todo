@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
+import html
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
@@ -192,7 +193,7 @@ def add_subtask(task_id):
 
         # 2. Get the subtask name from the request data
         data = request.get_json()
-        subtask_name = data.get('subtask', '').strip()  # Get subtask name and trim whitespace
+        subtask_name = html.escape(data.get('subtask', '').strip())  # Get subtask name and trim whitespace
         
         # 3. Create a new Subtask object
         new_subtask = Subtask(name=subtask_name, task_id=task_id) 
@@ -234,7 +235,7 @@ def edit_task(task_id):
     try:
         task = TodoItem.query.get_or_404(task_id)
         data = request.get_json()
-        new_name = data.get('new_name', '').strip()  # Get new name and trim whitespace
+        new_name = html.escape(data.get('new_name', '').strip())  # Get new name and trim whitespace
 
         if not new_name:  # If new name is empty after trimming
             new_name = "untitled"  # Set it to "Untitled"
