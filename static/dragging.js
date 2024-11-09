@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder.style.visibility = 'hidden'; // Hide until positioned
 
                 dragList.appendChild(placeholder);
+                dragList.insertBefore(placeholder, draggedItem);
             }
         });
 
