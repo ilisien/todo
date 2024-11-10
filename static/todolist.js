@@ -40,34 +40,89 @@ async function addTask() {
 }
 
 
-// Toggle task completion and move it to the appropriate section without reloading the page
-async function toggleTask(taskId) {
-    const response = await fetch(`/toggle_task/${taskId}`, { method: 'POST' });
-    const result = await response.json();
-    if (result.success) {
-        const taskElement = document.querySelector(`li[data-task-id="${taskId}"]`);
-        taskElement.classList.toggle('completed', result.completed);
+let taskToggleDebounce = {}; // Object to store debounce status for each task
 
-        // Move task between active and completed sections based on its completion status
-        if (result.completed) {
+async function toggleTask(taskId) {
+    // Check if this task is already being toggled
+    if (taskToggleDebounce[taskId]) return;
+
+    // Set debounce flag to prevent rapid toggles
+    taskToggleDebounce[taskId] = true;
+
+    // Locate the task element
+    const taskElement = document.querySelector(`li[data-task-id="${taskId}"]`);
+
+    // Check which list the task is currently in
+    const isCompleted = taskElement.parentElement.classList.contains('completed-tasks');
+    
+    // Update the task UI state
+    const newCompletedState = !isCompleted;
+    
+    // Move the task to the appropriate list (active or completed)
+    if (newCompletedState) {
+        document.querySelector('.completed-tasks').insertAdjacentElement('afterbegin', taskElement);
+    } else {
+        document.querySelector('.active-tasks').appendChild(taskElement);
+    }
+
+    // Update the toggle button text based on the new state
+    const toggleButton = taskElement.querySelector('.toggle-task');
+    toggleButton.innerText = newCompletedState ? '☒' : '☐';
+
+    // Send request to the server to update the task's completion state
+    try {
+        const response = await fetch(`/toggle_task/${taskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (!result.success) {
+            // If the server update fails, revert the UI changes
+            if (isCompleted) {
+                document.querySelector('.completed-tasks').appendChild(taskElement);
+            } else {
+                document.querySelector('.active-tasks').appendChild(taskElement);
+            }
+            toggleButton.innerText = isCompleted ? '☒' : '☐';
+            alert("Failed to update task status. Please try again.");
+        }
+    } catch (error) {
+        // Roll back the UI if the fetch request fails
+        if (isCompleted) {
             document.querySelector('.completed-tasks').insertAdjacentElement('afterbegin', taskElement);
         } else {
             document.querySelector('.active-tasks').appendChild(taskElement);
         }
-
-        const toggleButton = taskElement.querySelector('.toggle-task');
-        toggleButton.innerText = result.completed ? '☒' : '☐';
+        toggleButton.innerText = isCompleted ? '☒' : '☐';
+        console.error("Error toggling task:", error);
+    } finally {
+        // Clear debounce after a short delay to allow further toggles
+        setTimeout(() => {
+            taskToggleDebounce[taskId] = false;
+        }, 200); // Adjust debounce time if needed
     }
 }
+
 
 // 🗑️ task via AJAX and remove from UI
 async function deleteTask(taskId) {
-    const response = await fetch(`/delete_task/${taskId}`, { method: 'POST' });
-    const result = await response.json();
-    if (result.success) {
-        document.querySelector(`li[data-task-id="${taskId}"]`).remove();
+    // Locate the task element and remove it from the UI immediately
+    const taskElement = document.querySelector(`li[data-task-id="${taskId}"]`);
+    taskElement.remove();
+
+    // Send request to the server
+    try {
+        const response = await fetch(`/delete_task/${taskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (!result.success) {
+            // Roll back UI change if there's an error
+            document.querySelector('ul.active-tasks').appendChild(taskElement);
+            alert("Failed to delete task. Please try again.");
+        }
+    } catch (error) {
+        // Roll back UI if fetch fails
+        document.querySelector('ul.active-tasks').appendChild(taskElement);
+        console.error("Error deleting task:", error);
     }
 }
+
 
 // Edit task name via AJAX
 async function editTask(taskId) {
@@ -132,22 +187,66 @@ async function addSubtask(taskId) {
     }
 }
 
+let subtaskToggleDebounce = {}; // Object to store debounce status for each subtask
+
 async function toggleSubtask(subtaskId) {
-    const response = await fetch(`/toggle_subtask/${subtaskId}`, { method: 'POST' });
-    const result = await response.json();
-    if (result.success) {
-        const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
-        subtaskElement.classList.toggle('completed', result.completed);
-        const toggleButton = subtaskElement.querySelector('.toggle-subtask');
-        toggleButton.innerText = result.completed ? '☒' : '☐';
+    // Check if this subtask is in the middle of a toggle action
+    if (subtaskToggleDebounce[subtaskId]) return;
+
+    // Set debounce flag to true to prevent rapid toggles
+    subtaskToggleDebounce[subtaskId] = true;
+
+    // Locate the subtask element, toggle button, and initial state
+    const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
+    const toggleButton = subtaskElement.querySelector('.toggle-subtask');
+    const isCompleted = subtaskElement.classList.contains('completed');
+
+    // Update UI immediately
+    subtaskElement.classList.toggle('completed', !isCompleted);
+    toggleButton.innerText = !isCompleted ? '☒' : '☐';
+
+    // Send request to the server
+    try {
+        const response = await fetch(`/toggle_subtask/${subtaskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (!result.success) {
+            // Roll back UI if the request fails
+            subtaskElement.classList.toggle('completed', isCompleted);
+            toggleButton.innerText = isCompleted ? '☒' : '☐';
+            alert("Failed to update subtask status. Please try again.");
+        }
+    } catch (error) {
+        // Roll back UI if the fetch fails
+        subtaskElement.classList.toggle('completed', isCompleted);
+        toggleButton.innerText = isCompleted ? '☒' : '☐';
+        console.error("Error toggling subtask:", error);
+    } finally {
+        // Clear debounce after a short delay to allow new toggles
+        setTimeout(() => {
+            subtaskToggleDebounce[subtaskId] = false;
+        }, 200); // Adjust debounce time as needed
     }
 }
 
+
 async function deleteSubtask(subtaskId) {
-    const response = await fetch(`/delete_subtask/${subtaskId}`, { method: 'POST' });
-    const result = await response.json();
-    if (result.success) {
-        document.querySelector(`li[data-subtask-id="${subtaskId}"]`).remove();
+    // Locate the subtask element and remove it from the UI immediately
+    const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
+    subtaskElement.remove();
+
+    // Send request to the server
+    try {
+        const response = await fetch(`/delete_subtask/${subtaskId}`, { method: 'POST' });
+        const result = await response.json();
+        if (!result.success) {
+            // Roll back UI change if there's an error
+            document.querySelector(`li[data-task-id="${subtaskElement.closest('.task-item').getAttribute('data-task-id')}"] .subtasks`).appendChild(subtaskElement);
+            alert("Failed to delete subtask. Please try again.");
+        }
+    } catch (error) {
+        // Roll back UI if fetch fails
+        document.querySelector(`li[data-task-id="${subtaskElement.closest('.task-item').getAttribute('data-task-id')}"] .subtasks`).appendChild(subtaskElement);
+        console.error("Error deleting subtask:", error);
     }
 }
 
