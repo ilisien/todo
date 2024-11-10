@@ -54,10 +54,16 @@ async function toggleTask(taskId) {
 
     // Check which list the task is currently in
     const isCompleted = taskElement.parentElement.classList.contains('completed-tasks');
-    
-    // Update the task UI state
+
+    // Save the current order of tasks in the list before moving
+    const currentList = taskElement.parentElement;
+    const currentOrder = Array.from(currentList.children)
+        .filter(item => item.classList.contains('draggable'))
+        .map(item => item.dataset.taskId);
+
+    // Update the task UI state (move the task immediately in the UI)
     const newCompletedState = !isCompleted;
-    
+
     // Move the task to the appropriate list (active or completed)
     if (newCompletedState) {
         document.querySelector('.completed-tasks').insertAdjacentElement('afterbegin', taskElement);
@@ -69,37 +75,58 @@ async function toggleTask(taskId) {
     const toggleButton = taskElement.querySelector('.toggle-task');
     toggleButton.innerText = newCompletedState ? '☒' : '☐';
 
+    // After the toggle, update the order within the list
+    const newList = newCompletedState ? document.querySelector('.completed-tasks') : document.querySelector('.active-tasks');
+    const newOrder = Array.from(newList.children)
+        .filter(item => item.classList.contains('draggable'))
+        .map(item => item.dataset.taskId);
+
     // Send request to the server to update the task's completion state
+    let toggleSuccess = false;
     try {
         const response = await fetch(`/toggle_task/${taskId}`, { method: 'POST' });
         const result = await response.json();
-        if (!result.success) {
-            // If the server update fails, revert the UI changes
-            if (isCompleted) {
-                document.querySelector('.completed-tasks').appendChild(taskElement);
-            } else {
-                document.querySelector('.active-tasks').appendChild(taskElement);
-            }
-            toggleButton.innerText = isCompleted ? '☒' : '☐';
+        if (result.success) {
+            toggleSuccess = true; // Task toggle succeeded on the server
+        } else {
             alert("Failed to update task status. Please try again.");
         }
     } catch (error) {
-        // Roll back the UI if the fetch request fails
+        console.error("Error toggling task:", error);
+    }
+
+    if (toggleSuccess) {
+        // Send update request to server to reorder tasks after toggle success
+        try {
+            const response = await fetch('/update_task_order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ order: newOrder })
+            });
+            const result = await response.json();
+            if (!result.success) {
+                alert("Failed to update task order. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error updating task order:", error);
+        }
+    } else {
+        // If task toggle failed, revert UI changes
         if (isCompleted) {
-            document.querySelector('.completed-tasks').insertAdjacentElement('afterbegin', taskElement);
+            document.querySelector('.completed-tasks').appendChild(taskElement);
         } else {
             document.querySelector('.active-tasks').appendChild(taskElement);
         }
         toggleButton.innerText = isCompleted ? '☒' : '☐';
-        console.error("Error toggling task:", error);
-    } finally {
-        // Clear debounce after a short delay to allow further toggles
-        setTimeout(() => {
-            taskToggleDebounce[taskId] = false;
-        }, 200); // Adjust debounce time if needed
     }
-}
 
+    // Clear debounce after a short delay to allow further toggles
+    setTimeout(() => {
+        taskToggleDebounce[taskId] = false;
+    }, 200); // Adjust debounce time if needed
+}
 
 // 🗑️ task via AJAX and remove from UI
 async function deleteTask(taskId) {
