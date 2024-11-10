@@ -95,6 +95,7 @@ def fetch_tasks():
             'id': task.id,
             'task': task.task,
             'completed': task.completed,
+            'tab': task.tab,
             'subtasks': [{'id': subtask.id, 'name': subtask.name, 'completed': subtask.completed} for subtask in subtasks]
         })
     
@@ -129,10 +130,10 @@ def register():
 def add_task():
     try:
         data = request.get_json()
-
+        active_tab = data.get('tab', '')
         # No need to check for empty task_name here since we're sending "Untitled"
 
-        new_task = TodoItem(task="",user_id=current_user.id)
+        new_task = TodoItem(task="",user_id=current_user.id,tab=active_tab)
         max_position = db.session.query(db.func.max(TodoItem.position)).filter_by(user_id=current_user.id).scalar()
         new_task.position = (max_position or 0) + 1
 

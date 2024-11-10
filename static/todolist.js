@@ -380,7 +380,7 @@ async function fetchTasks() {
             const taskElement = tempDiv.firstElementChild; 
 
             // Now you can set dataset properties:
-            taskElement.dataset.tab = task.tab || 'All';
+            taskElement.dataset.tab = task.tab;
 
             // Append to the appropriate list
             if (task.completed) {
@@ -404,17 +404,18 @@ async function fetchTasks() {
 // Add task - updated to include tab and set data attribute
 async function addTask() {
     const activeTab = document.querySelector('.tab.active').dataset.tab;
-    // ... (fetch call)
+
     const response = await fetch('/add_task', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ task: "untitled", tab: activeTab }), // Include tab in request
+        body: JSON.stringify({ task: "untitled", tab: activeTab }),
     });
 
     const result = await response.json();
     if (result.success) {
+        // Create the newTaskHTML *here* after the fetch call:
         const newTaskHTML = `
             <li data-task-id="${result.id}" class="task-item draggable" draggable="true">
                 <div class="task-wrapper">
@@ -426,23 +427,20 @@ async function addTask() {
                             <button class="delete-task" data-task-id="${result.id}">×</button>
                         </div>
                     </div>
-                    <ul class="subtasks">
-                    </ul>
-                </div>
+                    <ul class="subtasks"></ul>  </div>
             </li>`;
-        document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', newTaskHTML);
+
+        // Now you can use newTaskHTML:
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newTaskHTML;
+        const newTaskLi = tempDiv.firstElementChild;
+        newTaskLi.dataset.tab = activeTab;
+
+        document.querySelector('ul.active-tasks').insertAdjacentElement('afterbegin', newTaskLi);
 
         // Automatically start editing the new task name
         editTask(result.id); 
     }
-
-    const newTaskLi = document.createElement('li');  // Create <li>
-    newTaskLi.outerHTML = newTaskHTML;        // Set the HTML
-    newTaskLi.dataset.tab = activeTab;    // Important: Set the tab data attribute
-
-    document.querySelector('ul.active-tasks').insertAdjacentElement('afterbegin', newTaskLi);
-    // ... (the rest of addTask, like editTask(result.id))
-    editTask(result.id); 
 }
 
 
