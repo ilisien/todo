@@ -21,11 +21,11 @@ async function addTask() {
             <li data-task-id="${result.id}" class="task-item draggable" draggable="true">
                 <div class="task-wrapper">
                     <div class="main-taskbar">
-                        <button class="toggle-task" data-task-id="${result.id}">${result.completed ? 'x' : '⠀'}</button>
+                        <button class="toggle-task" data-task-id="${result.id}">${result.completed ? '☒' : '☐'}</button>
                         <span class="task-name">${result.task}</span>
                         <div class="options">
-                            <button class="add-subtask" data-task-id="${result.id}">➕</button>
-                            <button class="delete-task" data-task-id="${result.id}">🗑️</button>
+                            <button class="add-subtask" data-task-id="${result.id}">+</button>
+                            <button class="delete-task" data-task-id="${result.id}">×</button>
                         </div>
                     </div>
                     <ul class="subtasks">
@@ -56,7 +56,7 @@ async function toggleTask(taskId) {
         }
 
         const toggleButton = taskElement.querySelector('.toggle-task');
-        toggleButton.innerText = result.completed ? 'x' : '⠀';
+        toggleButton.innerText = result.completed ? '☒' : '☐';
     }
 }
 
@@ -119,9 +119,9 @@ async function addSubtask(taskId) {
         const subtaskList = document.querySelector(`li[data-task-id="${taskId}"] .subtasks`);
         const newSubtaskHTML = `
             <li class="subtask-item" data-subtask-id="${result.subtask_id}">
-                <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">⠀</button>
+                <button class="toggle-subtask" data-subtask-id="${result.subtask_id}">☐</button>
                 <span class="subtask-name"></span> 
-                <button class="delete-subtask" data-subtask-id="${result.subtask_id}">🗑️</button>
+                <button class="delete-subtask" data-subtask-id="${result.subtask_id}">×</button>
             </li>`;
 
         // 4. Add the new subtask to the UI
@@ -139,7 +139,7 @@ async function toggleSubtask(subtaskId) {
         const subtaskElement = document.querySelector(`li[data-subtask-id="${subtaskId}"]`);
         subtaskElement.classList.toggle('completed', result.completed);
         const toggleButton = subtaskElement.querySelector('.toggle-subtask');
-        toggleButton.innerText = result.completed ? 'x' : '⠀';
+        toggleButton.innerText = result.completed ? '☒' : '☐';
     }
 }
 
@@ -237,19 +237,19 @@ async function fetchTasks() {
                 <li data-task-id="${task.id}" class="task-item draggable" draggable="true">
                     <div class="task-wrapper">
                         <div class="main-taskbar">
-                            <button class="toggle-task" data-task-id="${task.id}">${task.completed ? 'x' : '⠀'}</button>
+                            <button class="toggle-task" data-task-id="${task.id}">${task.completed ? '☒' : '☐'}</button>
                             <span class="task-name">${task.task}</span>
                             <div class="options">
-                                <button class="add-subtask" data-task-id="${task.id}">➕</button>
-                                <button class="delete-task" data-task-id="${task.id}">🗑️</button>
+                                <button class="add-subtask" data-task-id="${task.id}">+</button>
+                                <button class="delete-task" data-task-id="${task.id}">×</button>
                             </div>
                         </div>
                         <ul class="subtasks">
                             ${task.subtasks.map(subtask => `
                                 <li class="subtask-item" data-subtask-id="${subtask.id}">
-                                    <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? 'x' : '⠀'}</button>
+                                    <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '☒' : '☐'}</button>
                                     <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
-                                    <button class="delete-subtask" data-subtask-id="${subtask.id}">🗑️</button>
+                                    <button class="delete-subtask" data-subtask-id="${subtask.id}">×</button>
                                 </li>
                             `).join('')}
                         </ul>

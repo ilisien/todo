@@ -1,10 +1,42 @@
+:root[data-theme='light'] {
+    --bg-color: #e2e2e2;
+    --text-color: #333;
+    --task-bg: #fff;
+    --border-color: #bbb;
+}
+
+:root[data-theme='dark'] {
+    --bg-color: #333;
+    --text-color: #e2e2e2;
+    --task-bg: #444;
+    --border-color: #666;
+}
+
+:root[data-theme='pink'] {
+    --bg-color: #ffe2e2;
+    --text-color: #991c55;
+    --task-bg: #ffd1d9;
+    --border-color: #ff88a8;
+}
+
+:root[data-theme='cyan'] {
+    --bg-color: #e2f9ff;
+    --text-color: #006d80;
+    --task-bg: #bdeff7;
+    --border-color: #8ed9e7;
+}
+
 /* General Styles */
 body {
     padding: 20px;
 
-    background-color: #e2e2e2;
-
+    background-color: var(--bg-color);
+    color: var(--text-color);
     font-family: Arial, sans-serif;
+}
+
+a {
+    color: var(--text-color);
 }
 
 .container {
@@ -28,12 +60,17 @@ nav ul li {
     margin-right: 10px;
 }
 
+nav ul div {
+    display: inline;
+    margin-right: 10px;
+}
+
 /* Task List Styles */
 .active-tasks, 
 .completed-tasks {
     margin-bottom: 20px;
 
-    border-top: 1px solid #ccc;
+    border-top: 1px solid var(--border-color);
 }
 
 .todolist li.task-item, li.subtask-item {
@@ -53,6 +90,11 @@ nav ul li {
 button {
     margin-right: 10px;
     cursor:pointer;
+    outline: none;
+    border: none;
+    background-color: transparent;
+    color:var(--text-color);
+    font-size: 1.2rem;
 }
 
 /* Task Layout */
@@ -68,18 +110,20 @@ button {
     flex-direction: row;
     width: 100%;
     justify-content: space-between;
+    align-items: center;
 }
 
 .task-item,.subtask-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
 
     margin: 5px 0;
     padding: 10px;
     border-radius: 5;
-    border: 1px solid #bbb;
+    border: 1px solid var(--border-color);
 
-    background: #fff;
+    background: var(--task-bg);
 }
 
 span.task-name, span.subtask-name {

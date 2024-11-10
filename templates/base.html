@@ -11,8 +11,29 @@
         <ul>
             <li><a href="{{ url_for('todo') }}">todo list</a></li>
             <li><a href="{{ url_for('logout') }}">logout</a></li>
+            <div class="theme-selector">
+                <select id="theme">
+                    <option value="light">light</option>
+                    <option value="dark">dark</option>
+                    <option value="pink">pink</option>
+                    <option value="cyan">cyan</option>
+                </select>
+            </div>
         </ul>
     </nav>
+    <script>
+        document.getElementById('theme').addEventListener('change', function () {
+            document.documentElement.setAttribute('data-theme', this.value);
+            localStorage.setItem('theme', this.value);  // Save theme preference
+        });
+        
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.getElementById('theme').value = savedTheme;
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+    </script>
     <div class="container">
         {% block content %}{% endblock %}
     </div>
