@@ -4,42 +4,6 @@ document.getElementById('todo-form').addEventListener('submit', function(event) 
     addTask();
 });
 
-// Add task via AJAX and update the UI
-async function addTask() {
-    // Don't send an empty task name initially
-    const response = await fetch('/add_task', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ task: "untitled" }), // Add a default "untitled" task
-    });
-
-    const result = await response.json();
-    if (result.success) {
-        const newTaskHTML = `
-            <li data-task-id="${result.id}" class="task-item draggable" draggable="true">
-                <div class="task-wrapper">
-                    <div class="main-taskbar">
-                        <button class="toggle-task" data-task-id="${result.id}">${result.completed ? '☒' : '☐'}</button>
-                        <span class="task-name">${result.task}</span>
-                        <div class="options">
-                            <button class="add-subtask" data-task-id="${result.id}">+</button>
-                            <button class="delete-task" data-task-id="${result.id}">×</button>
-                        </div>
-                    </div>
-                    <ul class="subtasks">
-                    </ul>
-                </div>
-            </li>`;
-        document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', newTaskHTML);
-
-        // Automatically start editing the new task name
-        editTask(result.id); 
-    }
-}
-
-
 let taskToggleDebounce = {}; // Object to store debounce status for each task
 
 async function toggleTask(taskId) {
@@ -348,17 +312,37 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Fetch and display tasks when the page loads
+function filterTasksByTab(tabName) {
+    const allTasks = document.querySelectorAll('.task-item');
+
+    allTasks.forEach(task => {
+        if (tabName === 'All') {
+            task.style.display = 'block'; // Show all tasks if "All" is selected
+        } else {
+            const taskTab = task.dataset.tab; // Get the task's tab 
+            if (taskTab === tabName) {
+                task.style.display = 'block';
+            } else {
+                task.style.display = 'none';
+            }
+        }
+    });
+}
+
+
+// Fetch and display tasks
 async function fetchTasks() {
     const response = await fetch('/fetch_tasks');
     const result = await response.json();
 
     if (result.success) {
-        // Clear current task list
+        // Clear current task lists
         document.querySelector('ul.active-tasks').innerHTML = '';
         document.querySelector('ul.completed-tasks').innerHTML = '';
 
+
         result.todos.forEach(task => {
+            // ... (create taskHTML same as before, including subtasks if needed)
             let taskHTML = `
                 <li data-task-id="${task.id}" class="task-item draggable" draggable="true">
                     <div class="task-wrapper">
@@ -386,17 +370,94 @@ async function fetchTasks() {
                         </ul>
                     </div>
                 </li>`;
+            // Create a temporary div (not added to the DOM)
+            const tempDiv = document.createElement('div');  
 
-            // Append to correct section (active or completed)
+            // Set the innerHTML of the temporary div
+            tempDiv.innerHTML = taskHTML;       
+
+            // Get the first child (which is your <li>)
+            const taskElement = tempDiv.firstElementChild; 
+
+            // Now you can set dataset properties:
+            taskElement.dataset.tab = task.tab || 'All';
+
+            // Append to the appropriate list
             if (task.completed) {
-                document.querySelector('ul.completed-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                document.querySelector('ul.completed-tasks').appendChild(taskElement);
             } else {
-                document.querySelector('ul.active-tasks').insertAdjacentHTML('beforeend', taskHTML);
+                document.querySelector('ul.active-tasks').appendChild(taskElement);
             }
         });
+
+         // After rendering, call filterTasksByTab to apply current tab filtering
+        const currentActiveTab = document.querySelector('.tab.active');
+        if (currentActiveTab) {
+            filterTasksByTab(currentActiveTab.dataset.tab);
+        }
+
     }
 }
 
 
-// Fetch tasks when the page loads
+
+// Add task - updated to include tab and set data attribute
+async function addTask() {
+    const activeTab = document.querySelector('.tab.active').dataset.tab;
+    // ... (fetch call)
+    const response = await fetch('/add_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ task: "untitled", tab: activeTab }), // Include tab in request
+    });
+
+    const result = await response.json();
+    if (result.success) {
+        const newTaskHTML = `
+            <li data-task-id="${result.id}" class="task-item draggable" draggable="true">
+                <div class="task-wrapper">
+                    <div class="main-taskbar">
+                        <button class="toggle-task" data-task-id="${result.id}">${result.completed ? '☒' : '☐'}</button>
+                        <span class="task-name">${result.task}</span>
+                        <div class="options">
+                            <button class="add-subtask" data-task-id="${result.id}">+</button>
+                            <button class="delete-task" data-task-id="${result.id}">×</button>
+                        </div>
+                    </div>
+                    <ul class="subtasks">
+                    </ul>
+                </div>
+            </li>`;
+        document.querySelector('ul.active-tasks').insertAdjacentHTML('afterbegin', newTaskHTML);
+
+        // Automatically start editing the new task name
+        editTask(result.id); 
+    }
+
+    const newTaskLi = document.createElement('li');  // Create <li>
+    newTaskLi.outerHTML = newTaskHTML;        // Set the HTML
+    newTaskLi.dataset.tab = activeTab;    // Important: Set the tab data attribute
+
+    document.querySelector('ul.active-tasks').insertAdjacentElement('afterbegin', newTaskLi);
+    // ... (the rest of addTask, like editTask(result.id))
+    editTask(result.id); 
+}
+
+
+
+// Tab switching logic
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        filterTasksByTab(tab.dataset.tab); // Filter tasks by tab
+    });
+});
+
+
+
+// Initialize - Call fetchTasks (which now filters as well)
 window.onload = fetchTasks;

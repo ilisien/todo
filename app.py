@@ -28,7 +28,8 @@ class TodoItem(db.Model):
     completed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     subtasks = db.relationship('Subtask', backref='todo_item', lazy=True)
-    position = db.Column(db.Integer,nullable=True)
+    position = db.Column(db.Integer, nullable=True)
+    tab = db.Column(db.String(100), nullable=True)  # Add tab column
 
 class Subtask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,7 +72,6 @@ def logout():
 def todo():
     tasks = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.position).all()
 
-    # Include subtasks in the response
     todos = []
     for task in tasks:
         subtasks = Subtask.query.filter_by(task_id=task.id).all()

@@ -3,21 +3,54 @@
 
 <h3 class="todo">todo</h3>
 
-<!-- Task Form -->
+
+<div class="tabs">
+    <div class="tab active" data-tab="All">All</div>
+    {% for tab_name in (('Work',), ('Personal',), ('Shopping',)) %}  <!-- Example tab names -->
+        <div class="tab" data-tab="{{ tab_name[0] }}">{{ tab_name[0] }}</div>
+    {% endfor %}
+<button id="add-tab-button">+</button>
+</div>
+
+
 <form id="todo-form">
     <button type="submit">create new task</button>
 </form>
 
-<!-- Active Tasks -->
 <h3>active tasks</h3>
 <ul class="todolist active-tasks draglist"></ul>
 
-<!-- Completed Tasks -->
+
 <h3>completed tasks</h3>
 <ul class="todolist completed-tasks draglist"></ul>
 
-<!-- JavaScript -->
 <script src="{{ url_for('static', filename='todolist.js') }}"></script>
 <script src="{{ url_for('static', filename='dragging.js') }}"></script>
+<script>
+// Add tab functionality
+document.getElementById('add-tab-button').addEventListener('click', () => {
+    let newTabName = prompt("Enter new tab name:");
+    if (newTabName) {
+        const newTab = document.createElement('div');
+        newTab.classList.add('tab');
+        newTab.dataset.tab = newTabName;
+        newTab.textContent = newTabName;
 
+        // Click handler for new tab (important)
+        newTab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            newTab.classList.add('active');
+            filterTasksByTab(newTabName); // Filter tasks on click
+        });
+
+        document.querySelector('.tabs').insertBefore(newTab, document.getElementById('add-tab-button'));
+
+        // Activate new tab and filter tasks immediately
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        newTab.classList.add('active');
+        filterTasksByTab(newTabName);  // Filter for the new tab
+    }
+});
+
+</script>
 {% endblock %}
