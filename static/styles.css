@@ -158,7 +158,7 @@ li.drag {
 .placeholder {
     position: absolute;
     height: 30px;  /* Thin line */
-    background: linear-gradient(to bottom, rgb(176, 107, 255), rgba(176, 107, 255, 0));
+    background: linear-gradient(to bottom, var(--text-color), rgba(176, 107, 255, 0));
     border-radius: 5px;
     visibility: hidden;  /* Hidden until placed */
     z-index: 10;
