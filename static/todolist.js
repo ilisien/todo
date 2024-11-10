@@ -370,14 +370,19 @@ async function fetchTasks() {
                                 <button class="delete-task" data-task-id="${task.id}">×</button>
                             </div>
                         </div>
-                        <ul class="subtasks">
-                            ${task.subtasks.map(subtask => `
-                                <li class="subtask-item" data-subtask-id="${subtask.id}">
-                                    <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '☒' : '☐'}</button>
-                                    <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
-                                    <button class="delete-subtask" data-subtask-id="${subtask.id}">×</button>
-                                </li>
-                            `).join('')}
+                        <ul class="subtasks">`;
+
+            // Add subtasks for the task
+            task.subtasks.forEach(subtask => {
+                taskHTML += `
+                    <li class="subtask-item ${subtask.completed ? 'completed' : ''}" data-subtask-id="${subtask.id}">
+                        <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '☒' : '☐'}</button>
+                        <span class="subtask-name">${subtask.subtask}</span>
+                        <button class="delete-subtask" data-subtask-id="${subtask.id}">×</button>
+                    </li>`;
+            });
+
+            taskHTML += `
                         </ul>
                     </div>
                 </li>`;
