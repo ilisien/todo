@@ -377,7 +377,7 @@ async function fetchTasks() {
                 taskHTML += `
                     <li class="subtask-item ${subtask.completed ? 'completed' : ''}" data-subtask-id="${subtask.id}">
                         <button class="toggle-subtask" data-subtask-id="${subtask.id}">${subtask.completed ? '☒' : '☐'}</button>
-                        <span class="subtask-name">${subtask.subtask}</span>
+                        <span class="subtask-name">${subtask.name}</span>
                         <button class="delete-subtask" data-subtask-id="${subtask.id}">×</button>
                     </li>`;
             });
