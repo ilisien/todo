@@ -312,15 +312,14 @@ document.addEventListener('click', function(event) {
     }
 });
 
-function filterTasksByTab(tabName) {
+function filterTasksByTab(tabId) {  // Now takes tabId as argument
     const allTasks = document.querySelectorAll('.task-item');
-
     allTasks.forEach(task => {
-        if (tabName === 'All') {
-            task.style.display = 'block'; // Show all tasks if "All" is selected
+        if (tabId === 'all') { // Special case for the "All" tab
+            task.style.display = 'block';
         } else {
-            const taskTab = task.dataset.tab; // Get the task's tab 
-            if (taskTab === tabName) {
+            const taskTabId = task.dataset.tabId;
+            if (String(taskTabId) === String(tabId)) { // Compare as strings to avoid type issues
                 task.style.display = 'block';
             } else {
                 task.style.display = 'none';
@@ -380,7 +379,7 @@ async function fetchTasks() {
             const taskElement = tempDiv.firstElementChild; 
 
             // Now you can set dataset properties:
-            taskElement.dataset.tab = task.tab;
+            taskElement.dataset.tab_id = task.tab_id;
 
             // Append to the appropriate list
             if (task.completed) {
@@ -393,7 +392,7 @@ async function fetchTasks() {
          // After rendering, call filterTasksByTab to apply current tab filtering
         const currentActiveTab = document.querySelector('.tab.active');
         if (currentActiveTab) {
-            filterTasksByTab(currentActiveTab.dataset.tab);
+            filterTasksByTab(currentActiveTab.dataset.tab_id);
         }
 
     }
@@ -403,14 +402,13 @@ async function fetchTasks() {
 
 // Add task - updated to include tab and set data attribute
 async function addTask() {
-    const activeTab = document.querySelector('.tab.active').dataset.tab;
+    const activeTab = document.querySelector('.tab.active');
+    const tab_id = activeTab ? activeTab.dataset.tabId : null;  // Get tab_id
 
     const response = await fetch('/add_task', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ task: "untitled", tab: activeTab }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: "untitled", tab_id: tab_id }),  // Send tab_id
     });
 
     const result = await response.json();
@@ -443,19 +441,115 @@ async function addTask() {
     }
 }
 
-
-
-// Tab switching logic
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
 
         filterTasksByTab(tab.dataset.tab); // Filter tasks by tab
+
+
+        // Use data-tab-id instead of data-tab
+        filterTasksByTab(tab.dataset.tabId);  
+
+        // Update the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('tab', tab.dataset.tabId); // Make sure to save tabId instead of tab name to the URL
+        window.history.replaceState({}, '', '?' + urlParams.toString());
     });
 });
 
+//Create new tab
+async function createNewTab() {
+    const newTabName = prompt("Enter the name for the new tab:");
+    if (!newTabName) {
+        return; // Don't create a tab if the user cancels or enters nothing
+    }
 
 
-// Initialize - Call fetchTasks (which now filters as well)
-window.onload = fetchTasks;
+    try {
+        const response = await fetch('/create_tab', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ tab_name: newTabName })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            // Create the tab element
+            const newTab = document.createElement('div');
+            newTab.classList.add('tab');
+            newTab.dataset.tabId = result.tab_id; // use result.tab_id here
+            newTab.textContent = newTabName;
+
+
+            // Add event listener (important!)
+            newTab.addEventListener('click', handleTabClick);  // Add the click handler
+
+            document.querySelector('.tabs').insertBefore(newTab, document.getElementById('add-tab-button'));
+
+            // Activate the new tab:
+            deactivateAllTabs();
+            newTab.classList.add('active');
+            filterTasksByTab(result.tab_id);  // Filter tasks by the new tab's ID
+
+            updateTabUrl(result.tab_id); // Update the URL with the new tab
+        } else {
+            alert(result.error); // Display error message to the user
+        }
+
+
+    } catch (error) {
+        console.error('Error creating tab:', error);
+        alert('An error occurred while creating the tab.');
+    }
+}
+
+// Tab click handler (common logic)
+function handleTabClick(event) {
+    deactivateAllTabs();
+    event.target.classList.add('active');
+    filterTasksByTab(event.target.dataset.tabId);  // Filter tasks for the clicked tab
+    updateTabUrl(event.target.dataset.tabId); // Update the URL
+}
+
+function updateTabUrl(tabId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('tab', tabId);
+    window.history.replaceState({}, '', '?' + urlParams.toString());
+}
+
+function deactivateAllTabs() {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+}
+
+
+// Attach the handleTabClick function to each existing tab when the page loads.
+window.onload = () => {
+    //Attach event listeners to initial tabs:
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', handleTabClick);
+    });
+
+
+    fetchTasks().then(() => {
+        const activeTabFromUrl = (new URLSearchParams(window.location.search)).get('tab')
+        const initialTab = document.querySelector(`.tab[data-tab-id="${activeTabFromUrl}"]`) || document.querySelector('.tab[data-tab-id="all"]'); // Select 'All' tab by default
+
+        if (initialTab) {
+            deactivateAllTabs(); // Deactivate all other tabs
+            initialTab.classList.add('active');
+            filterTasksByTab(initialTab.dataset.tabId);
+        }
+    });
+
+    // Attach event listener to the 'Add Tab' button.
+    const addTabButton = document.getElementById('add-tab-button');
+    if (addTabButton) {
+        addTabButton.addEventListener('click', createNewTab); // Attach click handler
+    }
+
+
+}

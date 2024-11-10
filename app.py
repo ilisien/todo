@@ -22,6 +22,15 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
 
+class Tab(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Associate tabs with users
+    todo_items = db.relationship('TodoItem', backref='tab_relationship', lazy=True) # Define relationship
+
+    def __repr__(self):  # For easier debugging
+        return f"<Tab {self.name}>"
+
 class TodoItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task = db.Column(db.String(500), nullable=False)
@@ -29,7 +38,7 @@ class TodoItem(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     subtasks = db.relationship('Subtask', backref='todo_item', lazy=True)
     position = db.Column(db.Integer, nullable=True)
-    tab = db.Column(db.String(100), nullable=True)  # Add tab column
+    tab_id = db.Column(db.Integer, db.ForeignKey('tab.id'), nullable=True)  # Foreign key to the Tab model
 
 class Subtask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -70,6 +79,7 @@ def logout():
 @app.route('/todo', methods=['GET'])
 @login_required
 def todo():
+    tabs = Tab.query.filter_by(user_id=current_user.id).all()
     tasks = TodoItem.query.filter_by(user_id=current_user.id).order_by(TodoItem.position).all()
 
     todos = []
@@ -82,7 +92,7 @@ def todo():
             'subtasks': [{'id': subtask.id, 'name': subtask.name, 'completed': subtask.completed} for subtask in subtasks]
         })
 
-    return render_template('todo.html', todos=todos)
+    return render_template('todo.html', todos=todos, tabs=tabs)
 
 @app.route('/fetch_tasks', methods=['GET'])
 @login_required
@@ -95,7 +105,7 @@ def fetch_tasks():
             'id': task.id,
             'task': task.task,
             'completed': task.completed,
-            'tab': task.tab,
+            'tab_id': task.tab_id,
             'subtasks': [{'id': subtask.id, 'name': subtask.name, 'completed': subtask.completed} for subtask in subtasks]
         })
     
@@ -130,10 +140,12 @@ def register():
 def add_task():
     try:
         data = request.get_json()
-        active_tab = data.get('tab', '')
+        tab_id = data.get('tab_id')
         # No need to check for empty task_name here since we're sending "Untitled"
 
-        new_task = TodoItem(task="",user_id=current_user.id,tab=active_tab)
+        if isinstance(tab_id, str) and tab_id.isdigit():
+            tab_id = int(tab_id)
+        new_task = TodoItem(task="",user_id=current_user.id,tab_id=tab_id)
         max_position = db.session.query(db.func.max(TodoItem.position)).filter_by(user_id=current_user.id).scalar()
         new_task.position = (max_position or 0) + 1
 
@@ -270,6 +282,32 @@ def edit_subtask(subtask_id):
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/create_tab', methods=['POST'])
+@login_required
+def create_tab():
+    try:
+        data = request.get_json()
+        tab_name = data.get('tab_name')
+
+        if not tab_name:
+            return jsonify({'success': False, 'error': 'Tab name cannot be empty'}), 400
+        
+        # Check if a tab with that name already exists for this user
+        existing_tab = Tab.query.filter_by(user_id=current_user.id, name=tab_name).first()
+        if existing_tab:
+            return jsonify({'success': False, 'error': 'Tab with that name already exists'}), 400
+
+
+        new_tab = Tab(name=tab_name, user_id=current_user.id)
+        db.session.add(new_tab)
+        db.session.commit()
+
+        return jsonify({'success': True, 'tab_id': new_tab.id, 'tab_name': new_tab.name})
+
+    except Exception as e:
+        print(f"Error creating tab: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':

@@ -5,11 +5,9 @@
 
 
 <div class="tabs">
-    <div class="tab active" data-tab="All">All</div>
-    {% for tab_name in (('Work',), ('Personal',), ('Shopping',)) %}  <!-- Example tab names -->
-        <div class="tab" data-tab="{{ tab_name[0] }}">{{ tab_name[0] }}</div>
-    {% endfor %}
-<button id="add-tab-button">+</button>
+    <div class="tab active" data-tab-id="all">All</div> {% for tab in tabs %}
+    <div class="tab" data-tab-id="{{ tab.id }}">{{ tab.name }}</div> {% endfor %}
+    <button id="add-tab-button">+</button>
 </div>
 
 
