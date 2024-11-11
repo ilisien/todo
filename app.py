@@ -140,7 +140,7 @@ def register():
 def add_task():
     try:
         data = request.get_json()
-        tab_id = data.get('tab_id')
+        tab_id = data.get('tabId')
         # No need to check for empty task_name here since we're sending "Untitled"
 
         if isinstance(tab_id, str) and tab_id.isdigit():

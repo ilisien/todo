@@ -379,7 +379,8 @@ async function fetchTasks() {
             const taskElement = tempDiv.firstElementChild; 
 
             // Now you can set dataset properties:
-            taskElement.dataset.tab_id = task.tab_id;
+            taskElement.dataset.tabId = task.tabId;
+            console.log(task.tabId)
 
             // Append to the appropriate list
             if (task.completed) {
@@ -392,7 +393,7 @@ async function fetchTasks() {
          // After rendering, call filterTasksByTab to apply current tab filtering
         const currentActiveTab = document.querySelector('.tab.active');
         if (currentActiveTab) {
-            filterTasksByTab(currentActiveTab.dataset.tab_id);
+            filterTasksByTab(currentActiveTab.dataset.tabId);
         }
 
     }
@@ -403,12 +404,12 @@ async function fetchTasks() {
 // Add task - updated to include tab and set data attribute
 async function addTask() {
     const activeTab = document.querySelector('.tab.active');
-    const tab_id = activeTab ? activeTab.dataset.tabId : null;  // Get tab_id
+    const tabId = activeTab ? activeTab.dataset.tabId : null;  // Get tabId
 
     const response = await fetch('/add_task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: "untitled", tab_id: tab_id }),  // Send tab_id
+        body: JSON.stringify({ task: "untitled", tabId: tabId }),  // Send tabId
     });
 
     const result = await response.json();
@@ -432,7 +433,7 @@ async function addTask() {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = newTaskHTML;
         const newTaskLi = tempDiv.firstElementChild;
-        newTaskLi.dataset.tab = activeTab;
+        newTaskLi.dataset.tabId = tabId;
 
         document.querySelector('ul.active-tasks').insertAdjacentElement('afterbegin', newTaskLi);
 
@@ -481,7 +482,7 @@ async function createNewTab() {
             // Create the tab element
             const newTab = document.createElement('div');
             newTab.classList.add('tab');
-            newTab.dataset.tabId = result.tab_id; // use result.tab_id here
+            newTab.dataset.tabId = result.tabId; // use result.tabId here
             newTab.textContent = newTabName;
 
 
@@ -493,9 +494,9 @@ async function createNewTab() {
             // Activate the new tab:
             deactivateAllTabs();
             newTab.classList.add('active');
-            filterTasksByTab(result.tab_id);  // Filter tasks by the new tab's ID
+            filterTasksByTab(result.tabId);  // Filter tasks by the new tab's ID
 
-            updateTabUrl(result.tab_id); // Update the URL with the new tab
+            updateTabUrl(result.tabId); // Update the URL with the new tab
         } else {
             alert(result.error); // Display error message to the user
         }

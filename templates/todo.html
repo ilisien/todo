@@ -24,31 +24,6 @@
 
 <script src="{{ url_for('static', filename='todolist.js') }}"></script>
 <script src="{{ url_for('static', filename='dragging.js') }}"></script>
-<script>
-// Add tab functionality
-document.getElementById('add-tab-button').addEventListener('click', () => {
-    let newTabName = prompt("Enter new tab name:");
-    if (newTabName) {
-        const newTab = document.createElement('div');
-        newTab.classList.add('tab');
-        newTab.dataset.tab = newTabName;
-        newTab.textContent = newTabName;
 
-        // Click handler for new tab (important)
-        newTab.addEventListener('click', () => {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            newTab.classList.add('active');
-            filterTasksByTab(newTabName); // Filter tasks on click
-        });
 
-        document.querySelector('.tabs').insertBefore(newTab, document.getElementById('add-tab-button'));
-
-        // Activate new tab and filter tasks immediately
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        newTab.classList.add('active');
-        filterTasksByTab(newTabName);  // Filter for the new tab
-    }
-});
-
-</script>
 {% endblock %}
